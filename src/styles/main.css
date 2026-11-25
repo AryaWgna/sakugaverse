@@ -405,6 +405,8 @@ body.awakening .manga-bg {
 
 /* ── Masthead ── */
 .masthead {
+  position: relative;
+  z-index: 30;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -638,6 +640,16 @@ sakuga-tooltip::part(tip) {
   line-height: 1.35;
   white-space: normal;
   z-index: 60;
+}
+
+/* Brand tooltip sits near the top edge of the viewport, so open its bubble cleanly below */
+#brand-tooltip::part(tip) {
+  top: calc(100% + 12px);
+  bottom: auto;
+  left: 50%;
+  transform-origin: 50% 0%;
+  overflow: hidden;
+  max-width: 300px;
 }
 
 sakuga-toast {

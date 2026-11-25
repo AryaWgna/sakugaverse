@@ -149,11 +149,26 @@ function showPanel(index, syncTabs = false) {
     const panel = document.getElementById(`panel-${key}`);
     if (!panel) return;
     const isTarget = i === index;
-    panel.hidden = !isTarget;
-    if (isTarget) {
+    if (!isTarget) {
+      // Clear progress bars inside hidden panels so SakugaProgress never paints a stray cloud at (0,0)
+      panel.querySelectorAll('sakuga-progress').forEach((bar) => {
+        if (typeof bar.reset === 'function' && bar.value > 0) {
+          bar.dataset.savedProg = String(bar.value);
+          bar.reset();
+        }
+      });
+      panel.hidden = true;
+    } else {
+      panel.hidden = false;
       panel.classList.remove('panel-enter');
       void panel.offsetWidth;
       panel.classList.add('panel-enter');
+      panel.querySelectorAll('sakuga-progress').forEach((bar) => {
+        if (bar.dataset.savedProg && typeof bar.set === 'function') {
+          bar.set(Number(bar.dataset.savedProg), true);
+          delete bar.dataset.savedProg;
+        }
+      });
       panel.dispatchEvent(new CustomEvent('panel:show'));
     }
   });
