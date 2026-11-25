@@ -1,5 +1,7 @@
 # SakugaVerse (作画ヴァース)
 
+**Live Demo:** https://sakugaverse.vercel.app
+
 An all-in-one interactive **Anime Hub** powered by [**Sakuga VFX**](https://github.com/finktheartist/sakuga-vfx) Web Components — where every button, slider, toggle, checkbox, tab, and progress bar reacts like hand-drawn anime (*impact frames, smoke clouds, slashes, speed lines, and manga SFX lettering*).
 
 Built with **Vite + Vanilla JavaScript (ES Modules)**, **Jikan API v4 (MyAnimeList)**, and **multi-language UI (`ID` / `EN` / `日本語`)**.
