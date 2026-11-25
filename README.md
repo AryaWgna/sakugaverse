@@ -1,42 +1,54 @@
+<div align="center">
+
 # SakugaVerse (作画ヴァース)
 
-**Live Demo:** https://sakugaverse.vercel.app
+**All-in-One Interactive Anime Hub powered by Sakuga VFX**
 
-An all-in-one interactive **Anime Hub** powered by [**Sakuga VFX**](https://github.com/finktheartist/sakuga-vfx) Web Components — where every button, slider, toggle, checkbox, tab, and progress bar reacts like hand-drawn anime (*impact frames, smoke clouds, slashes, speed lines, and manga SFX lettering*).
+[**English**](./README.md) · [Bahasa Indonesia](./README.id.md) · [日本語](./README.ja.md)
 
-Built with **Vite + Vanilla JavaScript (ES Modules)**, **Jikan API v4 (MyAnimeList)**, and **multi-language UI (`ID` / `EN` / `日本語`)**.
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-sakugaverse.vercel.app-ff5fa8?style=for-the-badge)](https://sakugaverse.vercel.app)
+[![Built with Vite](https://img.shields.io/badge/Vite-Vanilla%20JS-8f8df7?style=for-the-badge)](https://vitejs.dev/)
+[![Deployed on Vercel](https://img.shields.io/badge/Vercel-Auto%20Deploy-1d1a4a?style=for-the-badge)](https://vercel.com/)
+
+</div>
+
+---
+
+**SakugaVerse** is an all-in-one anime web app built on [**Sakuga VFX**](https://github.com/finktheartist/sakuga-vfx) Web Components — where every button, slider, toggle, checkbox, tab, and progress bar reacts like hand-drawn anime (*impact frames, smoke clouds, slashes, speed lines, and manga SFX lettering like ドン!, ゴゴゴゴ, ズザッ*).
+
+Includes a live **3-language UI switcher (`ID` / `EN` / `日本語`)**, persistent **Otaku Rank & EXP**, and a global **Awakening Mode** theme switch.
 
 ---
 
 ## Features (5 Interconnected Modules)
 
 1. **Watchlist (`SakugaList`)**
-   - Live anime search via **Jikan API (MyAnimeList)** with a curated offline fallback catalog.
+   - Live anime search via **Jikan API v4 (MyAnimeList)** with a curated offline fallback catalog.
    - Track episode progress (`+1` / `-1`), filter by status (*Watching*, *Completed*, *Plan to Watch*), star ratings (`1–5★`), favorites, and **Spoiler-Free Mode**.
    - Overall completion bar powered by `<sakuga-progress>` (**ゴゴゴゴ → ドン!**).
 
 2. **Anime Gacha Picker (`Anime Summon`)**
    - Filter by minimum MAL score, release year, format (*TV / Movie*), genres, and **Hidden Gem Mode**.
-   - Dramatic energy-charge summon animation revealing **SSR / SR / R** anime picks.
-   - One-click **Add to Watchlist** integration.
+   - Dramatic energy-charge summon animation revealing **SSR / SR / R** anime recommendations.
+   - One-click **Add to Watchlist** integration directly into Module 1.
 
 3. **Training Arc (`Shonen Pomodoro & Quests`)**
-   - Pomodoro focus timer themed around iconic anime training arcs (*Hyperbolic Time Chamber*, *Hashira Training*, *Forest of Death*, *Bankai Training*).
-   - Custom focus/break sliders, subtle Web Audio API synth sound effects, **Daily Quests** with slash animations (**ズザッ**), and daily focus rating.
+   - Focus timer themed around iconic anime training arcs (*Hyperbolic Time Chamber*, *Hashira Training*, *Forest of Death*, *Bankai Training*).
+   - Custom focus/break sliders, subtle Web Audio API synth SFX, **Daily Quests** with slash animations (**ズザッ**), and daily focus rating.
 
 4. **Power Card Forge (`Character / OC Card Maker`)**
-   - Live HTML5 `<canvas>` manga trading card generator with 5 vector art styles or custom image upload.
+   - Live HTML5 `<canvas>` manga trading card generator with 5 procedural vector art styles or custom image upload.
    - Customize name, epithet, ultimate move, element, 4 stats (`PWR / SPD / SPI / AUR`), rarity (`1–5★`), and **Awakening / Bankai holographic foil**.
    - Export high-resolution **PNG** directly from the browser.
 
 5. **Otaku Arena (`Anime Quiz & Trivia`)**
-   - Fully translated trivia questions in **Indonesian, English, and Japanese** across *Shonen*, *Seinen*, and *Romance / Slice of Life*.
+   - Fully translated anime trivia in **English, Indonesian, and Japanese** across *Shonen*, *Seinen*, and *Romance / Slice of Life*.
    - Combo streak multiplier, manga speech-bubble **Hints** (`<sakuga-tooltip>`), and **Hardcore Mode (2x EXP, no Hints)**.
 
 ### Global Hub Systems
-- **Otaku Rank & EXP System**: Earn EXP across all 5 modules to rank up (*Genin → Chunin → Jonin → Hashira → Kage → Sakuga God*), persisted in `localStorage`.
+- **Otaku Rank & EXP System**: Earn EXP across all 5 modules to level up (*Genin → Chunin → Jonin → Hashira → Kage → Sakuga God*), saved automatically in `localStorage`.
 - **Awakening Mode**: Global `<sakuga-toggle>` switching `--sk-*` CSS variables between *Sakura Manga* and *Shonen Crimson*.
-- **Multi-Language Switcher**: Instant switching between **ID**, **EN**, and **日本語**.
+- **Multi-Language UI**: Switch seamlessly between **ID**, **EN**, and **日本語** without reloading.
 
 ---
 
@@ -45,7 +57,7 @@ Built with **Vite + Vanilla JavaScript (ES Modules)**, **Jikan API v4 (MyAnimeLi
 - **Vite** + **Vanilla JavaScript (ES Modules)** + **Modern CSS**
 - **Sakuga VFX** (all 11 native Web Components in `public/sakuga-vfx/`)
 - **Jikan API v4** (public MyAnimeList API, no API key required)
-- **Vercel** (zero-config Vite static deployment + automatic CI/CD on push)
+- **Vercel** (zero-config Vite deployment + automatic GitHub CI/CD on push)
 
 ---
 
@@ -56,7 +68,7 @@ npm install
 npm run dev
 ```
 
-Build for production:
+Build and preview production bundle:
 
 ```bash
 npm run build
@@ -65,13 +77,9 @@ npm run preview
 
 ---
 
-## Deployment (Vercel + GitHub Auto-Deploy)
+## Automatic Deployment (GitHub → Vercel)
 
-This project includes [vercel.json](./vercel.json) preconfigured for Vite (`npm run build` -> `dist/`).
-
-1. Push this repository to GitHub.
-2. Import the repository in [Vercel Dashboard](https://vercel.com/new) (or connect via `vercel git connect`).
-3. Every `git push` to `main` automatically triggers a fresh production build & deployment on Vercel.
+This repository is connected to Vercel via [vercel.json](./vercel.json). Every `git push` to `main` automatically builds and updates **https://sakugaverse.vercel.app**.
 
 ---
 
