@@ -154,6 +154,7 @@ function showPanel(index, syncTabs = false) {
       panel.classList.remove('panel-enter');
       void panel.offsetWidth;
       panel.classList.add('panel-enter');
+      panel.dispatchEvent(new CustomEvent('panel:show'));
     }
   });
   if (syncTabs) {

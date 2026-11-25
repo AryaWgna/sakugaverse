@@ -405,18 +405,21 @@ body.awakening .manga-bg {
 
 /* ── Masthead ── */
 .masthead {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px 22px;
-  padding: 20px 24px;
+  gap: 16px 24px;
+  padding: 18px 24px;
   background: var(--surface);
   border: 3px solid var(--ink);
   border-radius: 20px;
   box-shadow: var(--shadow);
   margin-bottom: 24px;
   overflow: visible;
+}
+
+.brand-block {
+  min-width: 0;
 }
 
 .brand-badge {
@@ -439,7 +442,7 @@ body.awakening .manga-bg {
 
 .brand-title {
   margin: 0;
-  font-size: clamp(26px, 4vw, 34px);
+  font-size: clamp(24px, 3.2vw, 32px);
   font-weight: 800;
   font-style: italic;
   letter-spacing: -0.03em;
@@ -453,21 +456,24 @@ body.awakening .manga-bg {
 .brand-sub {
   margin: 6px 0 0;
   color: var(--mute);
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 500;
+  line-height: 1.4;
+  max-width: 460px;
 }
 
 .hub-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 /* Clickable Rank Pill */
 .rank-pill {
-  min-width: 215px;
-  padding: 10px 14px;
+  min-width: 196px;
+  padding: 9px 13px;
   background: var(--surface-alt);
   border: 2.5px solid var(--ink);
   border-radius: 14px;
@@ -1540,6 +1546,15 @@ sakuga-toast::part(toast) {
 }
 
 /* Responsive */
+@media (max-width: 980px) {
+  .masthead {
+    grid-template-columns: 1fr;
+  }
+  .hub-controls {
+    justify-content: flex-start;
+  }
+}
+
 @media (max-width: 920px) {
   .grid-sidebar,
   .grid-split,

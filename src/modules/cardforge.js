@@ -42,11 +42,12 @@ export function initCardForge(root) {
     return Math.round(base * rarityMult * awakeMult);
   }
 
-  function updatePowerMeter() {
+  function updatePowerMeter(instant = false) {
+    if (root.hidden) return;
     const bar = root.querySelector('#cf-power-bar');
     if (bar && typeof bar.set === 'function') {
       const ratio = Math.min(1, calcPowerLevel() / 11000);
-      bar.set(ratio);
+      bar.set(ratio, instant);
     }
   }
 
@@ -565,4 +566,5 @@ export function initCardForge(root) {
 
   render();
   onLangChange(render);
+  root.addEventListener('panel:show', () => updatePowerMeter(true));
 }

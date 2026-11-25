@@ -37,7 +37,7 @@ export function initTraining(root) {
     if (clock) clock.textContent = formatTime(remainingSec);
     if (phaseEl) phaseEl.textContent = phase === 'focus' ? t('trPhaseFocus') : t('trPhaseBreak');
     if (ring) ring.style.setProperty('--ring-pct', String(Math.round(pct * 100)));
-    if (bar && typeof bar.set === 'function') {
+    if (bar && typeof bar.set === 'function' && !root.hidden) {
       bar.set(pct, instant);
     }
   }
