@@ -1,0 +1,535 @@
+import { t, onLangChange } from '../core/i18n.js';
+import { state, addExp, notify } from '../core/store.js';
+import { playTone } from '../core/sfx.js';
+
+const ELEMENTS = {
+  flame: { jp: '炎', bg1: '#fff1eb', bg2: '#ffd4c4', pri: '#ff4757', acc: '#ff9f1a', ink: '#2b0d14' },
+  thunder: { jp: '雷', bg1: '#fffbe6', bg2: '#ffeaa7', pri: '#f59e0b', acc: '#6c5ce7', ink: '#231942' },
+  void: { jp: '呪', bg1: '#f3efff', bg2: '#d9d2ff', pri: '#6c5ce7', acc: '#ff4f9a', ink: '#1b1440' },
+  mecha: { jp: '機', bg1: '#eef8ff', bg2: '#c7e8ff', pri: '#0284c7', acc: '#ff3864', ink: '#0f172a' },
+  spirit: { jp: '桜', bg1: '#fff0f6', bg2: '#ffd0e5', pri: '#ff5fa8', acc: '#8f8df7', ink: '#2c0b1d' }
+};
+
+const PRESETS = [
+  { id: 'ronin', label: 'Ronin', name: 'Kurogane Ren', title: 'Crimson Blade', ult: 'Zantetsu Eclipse', el: 'flame' },
+  { id: 'thunder', label: 'Striker', name: 'Raiden Sora', title: 'Flash Sovereign', ult: 'Godspeed Volt Slash', el: 'thunder' },
+  { id: 'void', label: 'Sorcerer', name: 'Yami Gojo', title: 'Limitless Phantom', ult: 'Hollow Singularity', el: 'void' },
+  { id: 'mecha', label: 'Pilot', name: 'Unit-09 Valkyrie', title: 'Orbital Breaker', ult: 'Giga Drill Overdrive', el: 'mecha' },
+  { id: 'spirit', label: 'Kitsune', name: 'Sakura Hime', title: 'Nine-Tail Oracle', ult: 'Thousand Petals Storm', el: 'spirit' }
+];
+
+export function initCardForge(root) {
+  let card = {
+    name: 'Kurogane Ren',
+    title: 'Crimson Blade',
+    ultimate: 'Zantetsu Eclipse',
+    element: 'flame',
+    preset: 'ronin',
+    power: 88,
+    speed: 92,
+    spirit: 76,
+    aura: 95,
+    rarity: 5,
+    awakened: false,
+    customImg: null
+  };
+
+  function calcPowerLevel() {
+    const base = (card.power + card.speed + card.spirit + card.aura) * 20;
+    const rarityMult = 0.7 + card.rarity * 0.14;
+    const awakeMult = card.awakened ? 1.35 : 1;
+    return Math.round(base * rarityMult * awakeMult);
+  }
+
+  function updatePowerMeter() {
+    const bar = root.querySelector('#cf-power-bar');
+    if (bar && typeof bar.set === 'function') {
+      const ratio = Math.min(1, calcPowerLevel() / 11000);
+      bar.set(ratio);
+    }
+  }
+
+  function drawProceduralArt(ctx, w, h, preset, theme) {
+    ctx.save();
+    ctx.translate(w / 2, h / 2);
+
+    // Dynamic speedlines behind character emblem
+    ctx.strokeStyle = card.awakened ? 'rgba(255,31,90,0.22)' : 'rgba(29,26,74,0.12)';
+    for (let i = 0; i < 36; i++) {
+      const ang = (i / 36) * Math.PI * 2;
+      ctx.lineWidth = i % 3 === 0 ? 4 : 2;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(ang) * 75, Math.sin(ang) * 75);
+      ctx.lineTo(Math.cos(ang) * 320, Math.sin(ang) * 320);
+      ctx.stroke();
+    }
+
+    // Aura circle
+    const grad = ctx.createRadialGradient(0, 0, 20, 0, 0, 155);
+    grad.addColorStop(0, card.awakened ? '#ff2a55' : theme.pri);
+    grad.addColorStop(0.65, theme.acc + '88');
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, 155, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Stylized manga silhouette emblem per preset
+    ctx.fillStyle = theme.ink;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 5;
+
+    if (preset === 'ronin') {
+      // Diagonal katana slash + silhouette cloak
+      ctx.beginPath();
+      ctx.moveTo(-125, 115);
+      ctx.quadraticCurveTo(-20, -145, 130, -110);
+      ctx.quadraticCurveTo(20, -60, -85, 135);
+      ctx.closePath();
+      ctx.fillStyle = card.awakened ? '#ff1f5a' : theme.acc;
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = theme.ink;
+      ctx.beginPath();
+      ctx.arc(0, -35, 42, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-75, 135);
+      ctx.quadraticCurveTo(0, -10, 75, 135);
+      ctx.closePath();
+      ctx.fill();
+    } else if (preset === 'thunder') {
+      // Giant jagged lightning bolt
+      ctx.fillStyle = '#ffe066';
+      ctx.strokeStyle = theme.ink;
+      ctx.lineWidth = 7;
+      ctx.beginPath();
+      ctx.moveTo(25, -135);
+      ctx.lineTo(-75, 10);
+      ctx.lineTo(-5, 10);
+      ctx.lineTo(-40, 135);
+      ctx.lineTo(80, -20);
+      ctx.lineTo(10, -20);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    } else if (preset === 'void') {
+      // Eclipse domain rings
+      for (let r = 115; r >= 35; r -= 26) {
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.fillStyle = r === 35 ? '#ffffff' : r % 2 === 0 ? theme.pri : theme.ink;
+        ctx.fill();
+        ctx.strokeStyle = theme.ink;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+      }
+    } else if (preset === 'mecha') {
+      // Angular mecha V-fin & visor
+      ctx.fillStyle = theme.ink;
+      ctx.beginPath();
+      ctx.moveTo(0, -110);
+      ctx.lineTo(95, -20);
+      ctx.lineTo(65, 110);
+      ctx.lineTo(-65, 110);
+      ctx.lineTo(-95, -20);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 5;
+      ctx.stroke();
+      // Glowing visor
+      ctx.fillStyle = card.awakened ? '#ff2a55' : '#38bdf8';
+      ctx.fillRect(-58, -22, 116, 26);
+      // V-Fin
+      ctx.strokeStyle = '#ffd43b';
+      ctx.lineWidth = 10;
+      ctx.beginPath();
+      ctx.moveTo(-115, -95);
+      ctx.lineTo(0, -35);
+      ctx.lineTo(115, -95);
+      ctx.stroke();
+    } else {
+      // Sakura spirit petals star
+      for (let i = 0; i < 5; i++) {
+        ctx.save();
+        ctx.rotate((i * Math.PI * 2) / 5);
+        ctx.beginPath();
+        ctx.moveTo(0, -15);
+        ctx.quadraticCurveTo(55, -75, 0, -130);
+        ctx.quadraticCurveTo(-55, -75, 0, -15);
+        ctx.fillStyle = i % 2 === 0 ? '#ff5fa8' : '#ffb8d9';
+        ctx.fill();
+        ctx.strokeStyle = theme.ink;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        ctx.restore();
+      }
+      ctx.beginPath();
+      ctx.arc(0, 0, 26, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.strokeStyle = theme.ink;
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  function drawCard() {
+    const canvas = root.querySelector('#forge-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width;
+    const H = canvas.height;
+    const theme = ELEMENTS[card.element] || ELEMENTS.flame;
+
+    // Background gradient
+    const bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, card.awakened ? '#240715' : theme.bg1);
+    bg.addColorStop(1, card.awakened ? '#4a0d27' : theme.bg2);
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // Manga halftone dots
+    ctx.fillStyle = card.awakened ? 'rgba(255,95,168,0.14)' : 'rgba(29,26,74,0.065)';
+    for (let y = 16; y < H; y += 22) {
+      for (let x = 16; x < W; x += 22) {
+        ctx.beginPath();
+        ctx.arc(x, y, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Outer manga border
+    ctx.strokeStyle = card.awakened ? '#ff5fa8' : theme.ink;
+    ctx.lineWidth = 14;
+    ctx.strokeRect(20, 20, W - 40, H - 40);
+
+    // Header bar
+    ctx.fillStyle = card.awakened ? '#ff1f5a' : theme.ink;
+    ctx.fillRect(42, 42, W - 84, 82);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'italic 800 36px "Space Grotesk", sans-serif';
+    ctx.fillText((card.name || 'UNKNOWN').slice(0, 20).toUpperCase(), 62, 92);
+
+    // Element Kanji Stamp
+    ctx.fillStyle = card.awakened ? '#ffe066' : theme.acc;
+    ctx.beginPath();
+    ctx.arc(W - 86, 83, 30, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    ctx.fillStyle = card.awakened ? '#240715' : '#ffffff';
+    ctx.font = '800 30px "M PLUS Rounded 1c", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(theme.jp, W - 86, 94);
+    ctx.textAlign = 'left';
+
+    // Art Window
+    const artX = 42, artY = 142, artW = W - 84, artH = 420;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(artX, artY, artW, artH);
+    ctx.clip();
+
+    const artGrad = ctx.createLinearGradient(artX, artY, artX + artW, artY + artH);
+    artGrad.addColorStop(0, '#ffffff');
+    artGrad.addColorStop(1, theme.bg2);
+    ctx.fillStyle = artGrad;
+    ctx.fillRect(artX, artY, artW, artH);
+
+    if (card.customImg) {
+      const img = card.customImg;
+      const scale = Math.max(artW / img.width, artH / img.height);
+      const iw = img.width * scale;
+      const ih = img.height * scale;
+      ctx.drawImage(img, artX + (artW - iw) / 2, artY + (artH - ih) / 2, iw, ih);
+    } else {
+      ctx.save();
+      ctx.translate(artX, artY);
+      drawProceduralArt(ctx, artW, artH, card.preset, theme);
+      ctx.restore();
+    }
+
+    // Awakening holographic stripes
+    if (card.awakened) {
+      ctx.fillStyle = 'rgba(255, 224, 102, 0.16)';
+      for (let i = -artH; i < artW; i += 64) {
+        ctx.beginPath();
+        ctx.moveTo(artX + i, artY);
+        ctx.lineTo(artX + i + 26, artY);
+        ctx.lineTo(artX + i + 26 + artH * 0.45, artY + artH);
+        ctx.lineTo(artX + i + artH * 0.45, artY + artH);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+
+    // Epithet ribbon inside art bottom
+    ctx.fillStyle = 'rgba(29, 26, 74, 0.88)';
+    ctx.fillRect(artX, artY + artH - 54, artW, 54);
+    ctx.fillStyle = '#ffe066';
+    ctx.font = '800 22px "Space Grotesk", sans-serif';
+    ctx.fillText(`★`.repeat(card.rarity) + `☆`.repeat(Math.max(0, 5 - card.rarity)), artX + 18, artY + artH - 19);
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'right';
+    ctx.font = 'italic 700 22px "Space Grotesk", sans-serif';
+    ctx.fillText((card.title || '').slice(0, 26), artX + artW - 18, artY + artH - 19);
+    ctx.textAlign = 'left';
+    ctx.restore();
+
+    ctx.strokeStyle = card.awakened ? '#ffe066' : theme.ink;
+    ctx.lineWidth = 6;
+    ctx.strokeRect(artX, artY, artW, artH);
+
+    // Ultimate Move Box
+    const ultY = 582;
+    ctx.fillStyle = card.awakened ? '#3b0a20' : '#ffffff';
+    ctx.fillRect(42, ultY, W - 84, 88);
+    ctx.strokeStyle = card.awakened ? '#ff5fa8' : theme.ink;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(42, ultY, W - 84, 88);
+
+    ctx.fillStyle = card.awakened ? '#ffb3cb' : theme.pri;
+    ctx.font = '800 16px "Space Grotesk", sans-serif';
+    ctx.fillText(card.awakened ? '⚡ AWAKENED ULTIMATE ART' : '⚡ ULTIMATE TECHNIQUE', 60, ultY + 30);
+    ctx.fillStyle = card.awakened ? '#ffffff' : theme.ink;
+    ctx.font = 'italic 800 28px "Space Grotesk", sans-serif';
+    ctx.fillText(`「${(card.ultimate || 'Sakuga Burst').slice(0, 24)}」`, 56, ultY + 68);
+
+    // Stats Bars
+    const stats = [
+      ['PWR', card.power, '#ff4757'],
+      ['SPD', card.speed, '#0ea5e9'],
+      ['SPI', card.spirit, '#8b5cf6'],
+      ['AUR', card.aura, '#ff5fa8']
+    ];
+    let sy = 702;
+    stats.forEach(([label, val, col]) => {
+      ctx.fillStyle = card.awakened ? '#ffffff' : theme.ink;
+      ctx.font = '800 22px "Space Grotesk", sans-serif';
+      ctx.fillText(label, 48, sy + 24);
+      ctx.textAlign = 'right';
+      ctx.fillText(String(val), W - 48, sy + 24);
+      ctx.textAlign = 'left';
+
+      const bx = 122, bw = W - 228, bh = 24;
+      ctx.fillStyle = card.awakened ? '#5c1434' : '#e6e4f8';
+      ctx.fillRect(bx, sy + 4, bw, bh);
+      ctx.fillStyle = col;
+      ctx.fillRect(bx, sy + 4, (bw * val) / 100, bh);
+      ctx.strokeStyle = card.awakened ? '#ffb3cb' : theme.ink;
+      ctx.lineWidth = 3;
+      ctx.strokeRect(bx, sy + 4, bw, bh);
+      sy += 56;
+    });
+
+    // Bottom Power Level Banner
+    const pwr = calcPowerLevel();
+    ctx.fillStyle = card.awakened ? '#ffe066' : theme.ink;
+    ctx.fillRect(42, H - 122, W - 84, 76);
+    ctx.fillStyle = card.awakened ? '#240715' : '#ffffff';
+    ctx.font = '800 20px "Space Grotesk", sans-serif';
+    ctx.fillText('SAKUGAVERSE EDITION', 62, H - 77);
+    ctx.textAlign = 'right';
+    ctx.font = 'italic 800 34px "Space Grotesk", sans-serif';
+    ctx.fillText(`BP ${pwr.toLocaleString()}`, W - 62, H - 72);
+    ctx.textAlign = 'left';
+  }
+
+  function render() {
+    const els = t('cfElements');
+    const st = t('cfStats');
+    root.innerHTML = `
+      <div class="panel-head">
+        <div>
+          <div class="panel-kicker">${t('cfKicker')}</div>
+          <h2 class="panel-title">${t('cfTitle')}</h2>
+          <p class="panel-desc">${t('cfDesc')}</p>
+        </div>
+      </div>
+
+      <div class="grid-split">
+        <div class="manga-card card-canvas-wrap">
+          <canvas id="forge-canvas" class="forge-canvas" width="760" height="1040"></canvas>
+          <div class="progress-stage" style="min-height:165px;padding:42px 8px 6px;width:100%">
+            <sakuga-progress id="cf-power-bar" label="${t('cfPowerCharge')}" done-label="${t('cfMaxPower')}" style="--sk-progress-width: 280px;"></sakuga-progress>
+          </div>
+          <div class="row-wrap" style="justify-content:center">
+            <sakuga-button id="cf-download">💾 ${t('cfDownload')}</sakuga-button>
+            <sakuga-button id="cf-random" variant="secondary">🎲 ${t('cfRandomize')}</sakuga-button>
+          </div>
+        </div>
+
+        <div class="manga-card stack">
+          <div class="grid-2">
+            <div class="field-group">
+              <span class="field-title">${t('cfCharName')}</span>
+              <sakuga-input id="cf-name" label="${t('cfCharName')}" style="--sk-input-width:100%"></sakuga-input>
+            </div>
+            <div class="field-group">
+              <span class="field-title">${t('cfCharTitle')}</span>
+              <sakuga-input id="cf-title" label="${t('cfCharTitle')}" style="--sk-input-width:100%"></sakuga-input>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <span class="field-title">${t('cfUltimate')}</span>
+            <sakuga-input id="cf-ult" label="${t('cfUltimate')}" style="--sk-input-width:100%"></sakuga-input>
+          </div>
+
+          <div class="field-group">
+            <span class="field-title">${t('cfAvatarPreset')}</span>
+            <div class="avatar-presets" id="cf-presets">
+              ${PRESETS.map((p) => `<button type="button" class="preset-btn ${card.preset === p.id && !card.customImg ? 'active' : ''}" data-preset="${p.id}">${p.label}</button>`).join('')}
+              <label class="preset-btn" style="cursor:pointer">
+                📷 ${t('cfUploadBtn')}
+                <input type="file" id="cf-upload" accept="image/*" hidden>
+              </label>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field-group">
+              <span class="field-title">${t('cfElement')}</span>
+              <sakuga-radio id="cf-element" label="${t('cfElement')}">
+                <option value="flame" ${card.element === 'flame' ? 'selected' : ''}>${els.flame}</option>
+                <option value="thunder" ${card.element === 'thunder' ? 'selected' : ''}>${els.thunder}</option>
+                <option value="void" ${card.element === 'void' ? 'selected' : ''}>${els.void}</option>
+                <option value="mecha" ${card.element === 'mecha' ? 'selected' : ''}>${els.mecha}</option>
+                <option value="spirit" ${card.element === 'spirit' ? 'selected' : ''}>${els.spirit}</option>
+              </sakuga-radio>
+            </div>
+
+            <div class="stack">
+              <div class="field-group">
+                <span class="field-title">${t('cfRarity')}</span>
+                <sakuga-rating id="cf-rarity" label="${t('cfRarity')}"></sakuga-rating>
+              </div>
+              <div class="row-wrap" style="justify-content:space-between;padding:10px 12px;background:var(--surface-alt);border:2px solid var(--ink);border-radius:12px">
+                <span style="font-size:13px;font-weight:800">${t('cfAwakenCard')}</span>
+                <sakuga-toggle id="cf-awaken" label="${t('cfAwakenCard')}"></sakuga-toggle>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field-group">
+              <span class="field-title">${st.power}</span>
+              <div class="slider-slot"><sakuga-slider id="cf-pwr" min="10" max="100" value="${card.power}" unit="" label="${st.power}" style="--sk-slider-width:100%"></sakuga-slider></div>
+            </div>
+            <div class="field-group">
+              <span class="field-title">${st.speed}</span>
+              <div class="slider-slot"><sakuga-slider id="cf-spd" min="10" max="100" value="${card.speed}" unit="" label="${st.speed}" style="--sk-slider-width:100%"></sakuga-slider></div>
+            </div>
+            <div class="field-group">
+              <span class="field-title">${st.spirit}</span>
+              <div class="slider-slot"><sakuga-slider id="cf-spi" min="10" max="100" value="${card.spirit}" unit="" label="${st.spirit}" style="--sk-slider-width:100%"></sakuga-slider></div>
+            </div>
+            <div class="field-group">
+              <span class="field-title">${st.aura}</span>
+              <div class="slider-slot"><sakuga-slider id="cf-aur" min="10" max="100" value="${card.aura}" unit="" label="${st.aura}" style="--sk-slider-width:100%"></sakuga-slider></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const nameIn = root.querySelector('#cf-name');
+    const titleIn = root.querySelector('#cf-title');
+    const ultIn = root.querySelector('#cf-ult');
+    const elRadio = root.querySelector('#cf-element');
+    const rarityEl = root.querySelector('#cf-rarity');
+    const awakenEl = root.querySelector('#cf-awaken');
+
+    requestAnimationFrame(() => {
+      nameIn.value = card.name;
+      titleIn.value = card.title;
+      ultIn.value = card.ultimate;
+      rarityEl.value = card.rarity;
+      awakenEl.checked = card.awakened;
+      drawCard();
+      updatePowerMeter();
+    });
+
+    nameIn.addEventListener('input', () => { card.name = nameIn.value; drawCard(); });
+    titleIn.addEventListener('input', () => { card.title = titleIn.value; drawCard(); });
+    ultIn.addEventListener('input', () => { card.ultimate = ultIn.value; drawCard(); });
+    elRadio.addEventListener('change', () => { card.element = elRadio.value; drawCard(); });
+    rarityEl.addEventListener('change', () => { card.rarity = Math.max(1, Number(rarityEl.value) || 1); drawCard(); updatePowerMeter(); });
+    awakenEl.addEventListener('change', () => { card.awakened = Boolean(awakenEl.checked); playTone('impact'); drawCard(); updatePowerMeter(); });
+
+    [['#cf-pwr', 'power'], ['#cf-spd', 'speed'], ['#cf-spi', 'spirit'], ['#cf-aur', 'aura']].forEach(([sel, key]) => {
+      const s = root.querySelector(sel);
+      s.addEventListener('input', () => { card[key] = Number(s.value); drawCard(); });
+      s.addEventListener('change', () => { card[key] = Number(s.value); drawCard(); updatePowerMeter(); });
+    });
+
+    root.querySelectorAll('[data-preset]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        card.preset = btn.dataset.preset;
+        card.customImg = null;
+        root.querySelectorAll('[data-preset]').forEach((b) => b.classList.toggle('active', b === btn));
+        drawCard();
+      });
+    });
+
+    root.querySelector('#cf-upload').addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          card.customImg = img;
+          drawCard();
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    root.querySelector('#cf-random').addEventListener('click', () => {
+      const p = PRESETS[Math.floor(Math.random() * PRESETS.length)];
+      card = {
+        ...card,
+        name: p.name,
+        title: p.title,
+        ultimate: p.ult,
+        element: p.el,
+        preset: p.id,
+        power: 55 + Math.floor(Math.random() * 46),
+        speed: 55 + Math.floor(Math.random() * 46),
+        spirit: 55 + Math.floor(Math.random() * 46),
+        aura: 60 + Math.floor(Math.random() * 41),
+        rarity: 3 + Math.floor(Math.random() * 3),
+        awakened: Math.random() > 0.5,
+        customImg: null
+      };
+      playTone('chime');
+      notify(t('cfRandomized'));
+      render();
+    });
+
+    const dlBtn = root.querySelector('#cf-download');
+    dlBtn.addEventListener('click', () => {
+      const canvas = root.querySelector('#forge-canvas');
+      const link = document.createElement('a');
+      const slug = (card.name || 'sakuga-card').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      link.download = `${slug}-sakugaverse.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      state.cardsForged += 1;
+      playTone('fanfare');
+      dlBtn.done();
+      addExp(25, t('cfDownloaded'));
+    });
+  }
+
+  render();
+  onLangChange(render);
+}
