@@ -214,15 +214,19 @@ function applyThemes() {
 function runBootSequence() {
   const bootEl = document.getElementById('sakuga-boot');
   if (!bootEl) return;
+  const subEl = bootEl.querySelector('.boot-sub');
   let dismissed = false;
+  const timers = [];
+
   const finish = () => {
     if (dismissed) return;
     dismissed = true;
+    timers.forEach(clearTimeout);
     bootEl.classList.add('boot-exit');
     document.documentElement.classList.remove('boot-dark', 'boot-awaken');
     setTimeout(() => {
       bootEl.remove();
-    }, 460);
+    }, 500);
   };
 
   bootEl.addEventListener('click', finish);
@@ -232,7 +236,12 @@ function runBootSequence() {
   });
 
   const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  setTimeout(finish, reduced ? 200 : 1550);
+  if (!reduced && subEl) {
+    timers.push(setTimeout(() => { subEl.textContent = 'LOADING SAKUGA VFX ENGINE...'; }, 850));
+    timers.push(setTimeout(() => { subEl.textContent = 'SYNCING WATCHLIST · GACHA · QUIZ...'; }, 1750));
+    timers.push(setTimeout(() => { subEl.textContent = 'READY! ドン!'; }, 2650));
+  }
+  timers.push(setTimeout(finish, reduced ? 250 : 3400));
 }
 
 function boot() {

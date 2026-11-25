@@ -186,12 +186,12 @@ body.dark.awakening .boot-overlay {
   background: #ff5fa8;
   opacity: 0;
   pointer-events: none;
-  animation: bootImpactFlash 0.55s ease-out 0.28s forwards;
+  animation: bootImpactFlash 0.75s ease-out 0.55s forwards;
 }
 
 @keyframes bootImpactFlash {
   0% { opacity: 0; }
-  18% { opacity: 0.32; }
+  20% { opacity: 0.34; }
   100% { opacity: 0; }
 }
 
@@ -215,7 +215,7 @@ body.dark.awakening .boot-overlay {
   letter-spacing: 0.06em;
   opacity: 0;
   transform: scale(2.1) rotate(-14deg);
-  animation: bootSlam 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) 0.32s forwards;
+  animation: bootSlam 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.65s forwards;
 }
 
 html.boot-dark .boot-sfx,
@@ -234,7 +234,7 @@ body.dark .boot-sfx {
   font-weight: 800;
   letter-spacing: 0.18em;
   opacity: 0;
-  animation: bootPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s forwards;
+  animation: bootPop 0.48s cubic-bezier(0.34, 1.56, 0.64, 1) 0.18s forwards;
 }
 
 html.boot-dark .boot-katakana,
@@ -253,7 +253,7 @@ body.dark .boot-katakana {
   text-shadow: 6px 6px 0 rgba(143, 141, 247, 0.45);
   opacity: 0;
   transform: scale(1.65) skewX(-8deg);
-  animation: bootSlam 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.22s forwards;
+  animation: bootSlam 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.42s forwards;
 }
 
 .boot-logo span {
@@ -276,7 +276,7 @@ body.dark .boot-katakana {
   width: 0%;
   border-radius: 999px;
   background: linear-gradient(90deg, #8f8df7, #ff5fa8, #ffe066);
-  animation: bootCharge 1.15s cubic-bezier(0.22, 1, 0.36, 1) 0.18s forwards;
+  animation: bootCharge 2.65s cubic-bezier(0.22, 1, 0.36, 1) 0.35s forwards;
 }
 
 .boot-sub {
