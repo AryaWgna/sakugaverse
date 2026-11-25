@@ -211,7 +211,32 @@ function applyThemes() {
   }
 }
 
+function runBootSequence() {
+  const bootEl = document.getElementById('sakuga-boot');
+  if (!bootEl) return;
+  let dismissed = false;
+  const finish = () => {
+    if (dismissed) return;
+    dismissed = true;
+    bootEl.classList.add('boot-exit');
+    document.documentElement.classList.remove('boot-dark', 'boot-awaken');
+    setTimeout(() => {
+      bootEl.remove();
+    }, 460);
+  };
+
+  bootEl.addEventListener('click', finish);
+  document.getElementById('boot-skip')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    finish();
+  });
+
+  const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  setTimeout(finish, reduced ? 200 : 1550);
+}
+
 function boot() {
+  runBootSequence();
   document.documentElement.lang = getLang() === 'jp' ? 'ja' : getLang();
   document.querySelectorAll('.lang-btn').forEach((btn) => {
     btn.addEventListener('click', () => {

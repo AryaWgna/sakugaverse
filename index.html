@@ -9,8 +9,31 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='56' height='56' rx='14' fill='%238f8df7' stroke='%231d1a4a' stroke-width='5'/%3E%3Cpath d='M34 12L18 35h13l-3 17 18-24H33l1-16z' fill='%23ff5fa8' stroke='%231d1a4a' stroke-width='3.5' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <script>
+    try {
+      const s = JSON.parse(localStorage.getItem('sakugaverse_state_v1') || '{}');
+      if (s.darkMode) document.documentElement.classList.add('boot-dark');
+      if (s.awakening) document.documentElement.classList.add('boot-awaken');
+    } catch {}
+  </script>
 </head>
 <body>
+  <!-- Anime Manga Boot Intro Overlay -->
+  <div class="boot-overlay" id="sakuga-boot" role="presentation">
+    <div class="boot-speedlines" aria-hidden="true"></div>
+    <div class="boot-flash" aria-hidden="true"></div>
+    <div class="boot-stage">
+      <div class="boot-sfx">ドン!</div>
+      <div class="boot-katakana">作画ヴァース</div>
+      <div class="boot-logo">SAKUGA<span>VERSE</span></div>
+      <div class="boot-bar-wrap">
+        <div class="boot-bar-fill"></div>
+      </div>
+      <div class="boot-sub">INITIALIZING ANIME HUB · 5 MODULES</div>
+    </div>
+    <button type="button" class="boot-skip" id="boot-skip">SKIP ⏭</button>
+  </div>
+
   <div class="manga-bg" aria-hidden="true"></div>
 
   <div class="app-shell">
@@ -87,9 +110,9 @@
     <div class="modal-dialog" id="modal-dialog" role="dialog" aria-modal="true"></div>
   </div>
 
-  <!-- Global Fixed Toast -->
+  <!-- Global Fixed Toast (duration is in seconds!) -->
   <div class="toast-dock">
-    <sakuga-toast id="global-toast" duration="2800"></sakuga-toast>
+    <sakuga-toast id="global-toast" duration="2.6"></sakuga-toast>
   </div>
 
   <!-- Plain scripts for Sakuga VFX Web Components (must not be ES modules) -->

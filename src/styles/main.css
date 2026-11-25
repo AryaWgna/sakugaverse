@@ -51,6 +51,13 @@ body.awakening {
   --sk-acc: #ff1f5a;
   --sk-track: #f0c2d2;
   --sk-fill: #ff1f5a;
+  --sk-tick: #2c0b1d;
+  --sk-btn-line: #2c0b1d;
+  --sk-alt-line: #2c0b1d;
+  --sk-sh: 6px 7px 0 #ffb3cb;
+  --sk-btn-sh: 6px 7px 0 #ffb3cb;
+  --sk-alt-sh: 6px 7px 0 #ffb3cb;
+  --sk-on-pri: #ffffff;
 }
 
 /* Midnight Manga Dark Theme */
@@ -77,6 +84,13 @@ body.dark {
   --sk-acc: #ff62ae;
   --sk-track: #353063;
   --sk-fill: #ff62ae;
+  --sk-tick: #ff62ae;
+  --sk-btn-line: #f4f2ff;
+  --sk-alt-line: #f4f2ff;
+  --sk-sh: 6px 7px 0 #4e46a3;
+  --sk-btn-sh: 6px 7px 0 #4e46a3;
+  --sk-alt-sh: 6px 7px 0 #4e46a3;
+  --sk-on-pri: #ffffff;
 }
 
 body.dark.awakening {
@@ -102,6 +116,225 @@ body.dark.awakening {
   --sk-acc: #ff2a63;
   --sk-track: #54223d;
   --sk-fill: #ff2a63;
+  --sk-tick: #ffe066;
+  --sk-btn-line: #fff0f5;
+  --sk-alt-line: #fff0f5;
+  --sk-sh: 6px 7px 0 #9c2a58;
+  --sk-btn-sh: 6px 7px 0 #9c2a58;
+  --sk-alt-sh: 6px 7px 0 #9c2a58;
+  --sk-on-pri: #ffffff;
+}
+
+/* ── Anime Manga Boot Intro Overlay ── */
+.boot-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+  display: grid;
+  place-items: center;
+  background: #faf9ff;
+  color: #1d1a4a;
+  overflow: hidden;
+  transition: opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1), transform 0.48s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html.boot-dark .boot-overlay,
+body.dark .boot-overlay {
+  background: #0d0b1e;
+  color: #f4f2ff;
+}
+
+html.boot-awaken .boot-overlay,
+body.awakening .boot-overlay {
+  background: #fff6f8;
+  color: #2c0b1d;
+}
+
+html.boot-dark.boot-awaken .boot-overlay,
+body.dark.awakening .boot-overlay {
+  background: #180912;
+  color: #fff0f5;
+}
+
+.boot-overlay.boot-exit {
+  opacity: 0;
+  transform: scale(1.08);
+  pointer-events: none;
+}
+
+.boot-speedlines {
+  position: absolute;
+  inset: -40%;
+  background: repeating-conic-gradient(
+    from 0deg,
+    transparent 0deg 6deg,
+    rgba(143, 141, 247, 0.12) 6deg 8.5deg,
+    transparent 8.5deg 16deg,
+    rgba(255, 95, 168, 0.1) 16deg 18deg
+  );
+  animation: bootSpin 18s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes bootSpin {
+  to { transform: rotate(360deg); }
+}
+
+.boot-flash {
+  position: absolute;
+  inset: 0;
+  background: #ff5fa8;
+  opacity: 0;
+  pointer-events: none;
+  animation: bootImpactFlash 0.55s ease-out 0.28s forwards;
+}
+
+@keyframes bootImpactFlash {
+  0% { opacity: 0; }
+  18% { opacity: 0.32; }
+  100% { opacity: 0; }
+}
+
+.boot-stage {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px;
+}
+
+.boot-sfx {
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 900;
+  font-style: italic;
+  color: #ff5fa8;
+  text-shadow: 4px 4px 0 #1d1a4a;
+  -webkit-text-stroke: 1.5px #1d1a4a;
+  letter-spacing: 0.06em;
+  opacity: 0;
+  transform: scale(2.1) rotate(-14deg);
+  animation: bootSlam 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) 0.32s forwards;
+}
+
+html.boot-dark .boot-sfx,
+body.dark .boot-sfx {
+  text-shadow: 4px 4px 0 #ffffff;
+  -webkit-text-stroke: 1.5px #ffffff;
+}
+
+.boot-katakana {
+  margin-top: 6px;
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: #1d1a4a;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  opacity: 0;
+  animation: bootPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s forwards;
+}
+
+html.boot-dark .boot-katakana,
+body.dark .boot-katakana {
+  background: #f4f2ff;
+  color: #0d0b1e;
+}
+
+.boot-logo {
+  margin: 10px 0 18px;
+  font-size: clamp(40px, 9vw, 76px);
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  text-shadow: 6px 6px 0 rgba(143, 141, 247, 0.45);
+  opacity: 0;
+  transform: scale(1.65) skewX(-8deg);
+  animation: bootSlam 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.22s forwards;
+}
+
+.boot-logo span {
+  color: #ff5fa8;
+}
+
+.boot-bar-wrap {
+  width: min(320px, 76vw);
+  height: 14px;
+  padding: 2px;
+  border: 3px solid currentColor;
+  border-radius: 999px;
+  box-shadow: 4px 4px 0 rgba(143, 141, 247, 0.45);
+  overflow: hidden;
+  background: transparent;
+}
+
+.boot-bar-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #8f8df7, #ff5fa8, #ffe066);
+  animation: bootCharge 1.15s cubic-bezier(0.22, 1, 0.36, 1) 0.18s forwards;
+}
+
+.boot-sub {
+  margin-top: 12px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  opacity: 0.72;
+}
+
+.boot-skip {
+  position: absolute;
+  right: 22px;
+  bottom: 22px;
+  z-index: 3;
+  padding: 7px 14px;
+  border: 2.5px solid currentColor;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: 800 12px/1 inherit;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  opacity: 0.78;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.boot-skip:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+}
+
+@keyframes bootSlam {
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg) skewX(0deg);
+  }
+}
+
+@keyframes bootPop {
+  from { opacity: 0; transform: translateY(10px) scale(0.85); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes bootCharge {
+  0% { width: 0%; }
+  45% { width: 64%; }
+  75% { width: 88%; }
+  100% { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boot-speedlines,
+  .boot-flash { animation: none; }
+  .boot-sfx,
+  .boot-katakana,
+  .boot-logo { opacity: 1; transform: none; animation: none; }
+  .boot-bar-fill { width: 100%; animation: none; }
 }
 
 * {
