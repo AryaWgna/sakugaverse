@@ -1,6 +1,8 @@
 import { t, getLang, onLangChange } from '../core/i18n.js';
 import { state, addExp, notify, saveState } from '../core/store.js';
+import { FALLBACK_ANIME } from '../core/jikan.js';
 import { playTone } from '../core/sfx.js';
+import { fxCombo, fxSSR } from '../core/fx.js';
 
 const QUESTIONS = [
   {
@@ -233,6 +235,31 @@ const QUESTIONS = [
   }
 ];
 
+function makePosterQuestions(count = 6) {
+  const pool = [...FALLBACK_ANIME].sort(() => Math.random() - 0.5).slice(0, count);
+  return pool.map((target) => {
+    const distractors = FALLBACK_ANIME.filter((a) => a.mal_id !== target.mal_id)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3);
+    const choices = [target, ...distractors].sort(() => Math.random() - 0.5);
+    const ans = choices.findIndex((c) => c.mal_id === target.mal_id);
+    const titles = choices.map((c) => c.title);
+    const genreHint = `${target.year} · ${target.genres.slice(0, 2).join(', ')}`;
+    return {
+      cat: 'poster',
+      poster: target.image,
+      q: {
+        id: 'Tebak judul anime dari poster blur ini!',
+        en: 'Guess the anime from this blurred poster!',
+        jp: 'このぼかしポスターのアニメ作品はどれ？'
+      },
+      opts: { id: titles, en: titles, jp: titles },
+      ans,
+      hint: { id: `Rilis ${genreHint}`, en: `Released ${genreHint}`, jp: `${genreHint}` }
+    };
+  });
+}
+
 export function initQuiz(root) {
   let category = 'all';
   let hardcore = false;
@@ -244,15 +271,19 @@ export function initQuiz(root) {
   let streak = 0;
   let selectedOpt = null;
   let answered = false;
+  let hintUsed = false;
   let lastFeedback = null;
 
   function buildDeck() {
-    const pool = category === 'all' ? [...QUESTIONS] : QUESTIONS.filter((q) => q.cat === category);
-    for (let i = pool.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [pool[i], pool[j]] = [pool[j], pool[i]];
+    if (category === 'poster') {
+      return makePosterQuestions(6);
     }
-    return pool.slice(0, Math.min(6, pool.length));
+    const base = category === 'all' ? [...QUESTIONS, ...makePosterQuestions(3)] : QUESTIONS.filter((q) => q.cat === category);
+    for (let i = base.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [base[i], base[j]] = [base[j], base[i]];
+    }
+    return base.slice(0, Math.min(6, base.length));
   }
 
   function startBattle() {
@@ -262,6 +293,7 @@ export function initQuiz(root) {
     streak = 0;
     selectedOpt = null;
     answered = false;
+    hintUsed = false;
     lastFeedback = null;
     active = true;
     finished = false;
@@ -278,12 +310,18 @@ export function initQuiz(root) {
     const lang = getLang();
     answered = true;
     const actBtn = root.querySelector('#qz-action');
+    const quizBox = root.querySelector('.quiz-box');
+
     if (selectedOpt === q.ans) {
       score += 1;
       streak += 1;
+      if (streak > state.quizMaxStreak) {
+        state.quizMaxStreak = streak;
+      }
       const gain = (20 + streak * 5) * (hardcore ? 2 : 1);
       lastFeedback = { ok: true, text: t('qzCorrect', gain) };
       playTone('fanfare');
+      if (streak >= 2) fxCombo(quizBox);
       if (actBtn && typeof actBtn.done === 'function') actBtn.done();
       addExp(gain, t('qzCorrect', gain));
     } else {
@@ -293,7 +331,13 @@ export function initQuiz(root) {
       playTone('impact');
     }
 
-    // Update UI in-place so the button burst and progress storm cloud play uninterrupted
+    // Unblur poster cleanly on answer reveal
+    const posterImg = root.querySelector('#qz-poster-img');
+    if (posterImg) {
+      posterImg.style.filter = 'blur(0px)';
+      posterImg.style.transform = 'scale(1)';
+    }
+
     const scoreChip = root.querySelector('#qz-score-chip');
     const streakChip = root.querySelector('#qz-streak-chip');
     const optRadio = root.querySelector('#qz-options');
@@ -328,6 +372,7 @@ export function initQuiz(root) {
       idx += 1;
       selectedOpt = null;
       answered = false;
+      hintUsed = false;
       lastFeedback = null;
     }
     render();
@@ -353,6 +398,7 @@ export function initQuiz(root) {
             <span class="field-title">${t('qzCategory')}</span>
             <sakuga-radio id="qz-cat" label="${t('qzCategory')}">
               <option value="all" ${category === 'all' ? 'selected' : ''}>${cats.all}</option>
+              <option value="poster" ${category === 'poster' ? 'selected' : ''}>🖼️ ${cats.poster}</option>
               <option value="shonen" ${category === 'shonen' ? 'selected' : ''}>${cats.shonen}</option>
               <option value="seinen" ${category === 'seinen' ? 'selected' : ''}>${cats.seinen}</option>
               <option value="romance" ${category === 'romance' ? 'selected' : ''}>${cats.romance}</option>
@@ -388,7 +434,7 @@ export function initQuiz(root) {
             <h2 class="panel-title">${t('qzFinishTitle')}</h2>
           </div>
         </div>
-        <div class="manga-card quiz-box" style="text-align:center">
+        <div class="manga-card quiz-box" id="qz-finish-card" style="text-align:center">
           <div class="timer-display" style="font-size:56px">${score} / ${deck.length}</div>
           <p style="font-size:16px;font-weight:700;color:var(--mute);margin:8px 0 20px">${t('qzFinishDesc', score, deck.length)}</p>
           <div style="display:flex;justify-content:center;margin-bottom:24px">
@@ -401,7 +447,10 @@ export function initQuiz(root) {
         </div>
       `;
       const ratingEl = root.querySelector('#qz-final-rating');
-      requestAnimationFrame(() => { ratingEl.value = stars; });
+      requestAnimationFrame(() => {
+        ratingEl.value = stars;
+        if (stars >= 4) fxSSR(root.querySelector('#qz-finish-card'));
+      });
       root.querySelector('#qz-again').addEventListener('click', startBattle);
       root.querySelector('#qz-back').addEventListener('click', () => { active = false; render(); });
       return;
@@ -410,6 +459,7 @@ export function initQuiz(root) {
     const q = deck[idx];
     const opts = q.opts[lang];
     const ratio = (idx + (answered ? 1 : 0)) / Math.max(1, deck.length);
+    const blurPx = answered ? 0 : hintUsed ? 6 : 13;
 
     root.innerHTML = `
       <div class="panel-head">
@@ -424,12 +474,14 @@ export function initQuiz(root) {
           <span class="tag-chip pri">${t('qzQuestionOf', idx + 1, deck.length)}</span>
           <span class="tag-chip" id="qz-score-chip">${t('qzScore')}: ${score}</span>
           <span class="tag-chip accent" id="qz-streak-chip">🔥 ${t('qzStreak')}: ${streak}x</span>
-          ${!hardcore ? `<div class="row-wrap" style="gap:6px"><span style="font-size:12px;font-weight:800">${t('qzHintLabel')}</span><sakuga-tooltip text="${escapeAttr(q.hint[lang])}" label="${t('qzHintLabel')}"></sakuga-tooltip></div>` : `<span class="tag-chip gold">HARDCORE 2X</span>`}
+          ${!hardcore ? `<div class="row-wrap" style="gap:6px"><span style="font-size:12px;font-weight:800">${t('qzHintLabel')}</span><sakuga-tooltip id="qz-hint-tip" text="${escapeAttr(q.hint[lang])}" label="${t('qzHintLabel')}"></sakuga-tooltip></div>` : `<span class="tag-chip gold">HARDCORE 2X</span>`}
         </div>
 
         <div class="progress-stage" style="min-height:155px;padding:38px 8px 4px">
           <sakuga-progress id="qz-progress" label="${t('qzComboBar')}" done-label="${t('qzComboDone')}" style="--sk-progress-width: 280px;"></sakuga-progress>
         </div>
+
+        ${q.poster ? `<div class="quiz-poster-box"><img id="qz-poster-img" src="${q.poster}" alt="Mystery anime poster" style="filter:blur(${blurPx}px);transform:scale(${answered ? 1 : 1.08})"></div>` : ''}
 
         <h3 class="quiz-question">${escapeHtml(q.q[lang])}</h3>
 
@@ -450,6 +502,20 @@ export function initQuiz(root) {
     requestAnimationFrame(() => {
       if (prog && typeof prog.set === 'function') prog.set(ratio, !answered);
     });
+
+    // Using Hint sharpens blurred poster slightly!
+    const hintTip = root.querySelector('#qz-hint-tip');
+    if (hintTip && q.poster) {
+      const sharpen = () => {
+        if (!answered && !hintUsed) {
+          hintUsed = true;
+          const img = root.querySelector('#qz-poster-img');
+          if (img) img.style.filter = 'blur(6px)';
+        }
+      };
+      hintTip.addEventListener('pointerenter', sharpen);
+      hintTip.addEventListener('click', sharpen);
+    }
 
     const optRadio = root.querySelector('#qz-options');
     optRadio.addEventListener('change', () => {

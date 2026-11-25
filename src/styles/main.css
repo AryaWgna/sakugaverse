@@ -1,4 +1,4 @@
-/* SakugaVerse — Manga Print Editorial + Kinetic Sakuga UI */
+/* SakugaVerse V2 — Manga Print Editorial + Midnight Dark + 3D Holo + Kinetic Sakuga UI */
 :root {
   --page: #faf9ff;
   --surface: #ffffff;
@@ -53,6 +53,57 @@ body.awakening {
   --sk-fill: #ff1f5a;
 }
 
+/* Midnight Manga Dark Theme */
+body.dark {
+  --page: #0d0b1e;
+  --surface: #171430;
+  --surface-alt: #211c42;
+  --ink: #f4f2ff;
+  --mute: #a8a3d6;
+  --line: #363063;
+  --soft: #5c54b8;
+  --pri: #9b97ff;
+  --acc: #ff62ae;
+  --dot: rgba(155, 151, 255, 0.13);
+  --shadow: 6px 7px 0 #342d78;
+  --shadow-sm: 4px 4px 0 #342d78;
+
+  --sk-card: #1d193a;
+  --sk-ink: #f4f2ff;
+  --sk-dim: #a8a3d6;
+  --sk-soft: #4e46a3;
+  --sk-pri: #8f8df7;
+  --sk-pri-ink: #0f0c24;
+  --sk-acc: #ff62ae;
+  --sk-track: #353063;
+  --sk-fill: #ff62ae;
+}
+
+body.dark.awakening {
+  --page: #180912;
+  --surface: #26101e;
+  --surface-alt: #341629;
+  --ink: #fff0f5;
+  --mute: #d89ab4;
+  --line: #5b2844;
+  --soft: #a12e5d;
+  --pri: #ff4f8b;
+  --acc: #ff2a63;
+  --dot: rgba(255, 42, 99, 0.14);
+  --shadow: 6px 7px 0 #701a3e;
+  --shadow-sm: 4px 4px 0 #701a3e;
+
+  --sk-card: #2c1322;
+  --sk-ink: #fff0f5;
+  --sk-dim: #d89ab4;
+  --sk-soft: #9c2a58;
+  --sk-pri: #ff4f8b;
+  --sk-pri-ink: #1a0712;
+  --sk-acc: #ff2a63;
+  --sk-track: #54223d;
+  --sk-fill: #ff2a63;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -100,7 +151,23 @@ body.awakening .manga-bg {
   z-index: 1;
   max-width: 1180px;
   margin: 0 auto;
-  padding: 24px 20px 96px;
+  padding: 24px 20px 104px;
+}
+
+/* Brief manga impact screen shake */
+.app-shell.sakuga-shake {
+  animation: impactShake 0.26s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes impactShake {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  20% { transform: translate3d(-5px, 2px, 0) rotate(-0.3deg); }
+  45% { transform: translate3d(5px, -3px, 0) rotate(0.3deg); }
+  70% { transform: translate3d(-3px, 1px, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell.sakuga-shake { animation: none; }
 }
 
 /* ── Masthead ── */
@@ -109,7 +176,7 @@ body.awakening .manga-bg {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 18px 24px;
+  gap: 16px 22px;
   padding: 20px 24px;
   background: var(--surface);
   border: 3px solid var(--ink);
@@ -123,7 +190,7 @@ body.awakening .manga-bg {
   display: inline-block;
   padding: 2px 10px;
   background: var(--ink);
-  color: #fff;
+  color: var(--page);
   border-radius: 999px;
   font-size: 11px;
   font-weight: 800;
@@ -161,10 +228,10 @@ body.awakening .manga-bg {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
-/* Rank Pill */
+/* Clickable Rank Pill */
 .rank-pill {
   min-width: 215px;
   padding: 10px 14px;
@@ -172,6 +239,16 @@ body.awakening .manga-bg {
   border: 2.5px solid var(--ink);
   border-radius: 14px;
   box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+
+.rank-pill:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 var(--soft);
 }
 
 .rank-top {
@@ -246,8 +323,33 @@ body.awakening .manga-bg {
 
 .lang-btn.active {
   background: var(--ink);
-  color: #fff;
+  color: var(--page);
   transform: translateY(-1px);
+}
+
+/* Icon Pill (Midnight Dark toggle) */
+.icon-pill {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 2.5px solid var(--ink);
+  border-radius: 12px;
+  background: var(--surface-alt);
+  color: var(--ink);
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--soft);
+  transition: transform 0.12s ease, background 0.15s;
+}
+
+.icon-pill:hover {
+  transform: translateY(-2px);
+}
+
+.icon-pill.active {
+  background: var(--ink);
+  color: var(--page);
 }
 
 /* Awakening Toggle */
@@ -283,9 +385,24 @@ body.awakening .manga-bg {
   overflow: visible;
 }
 
-/* ── Panels & Manga Cards (NEVER overflow: hidden on parents of sakuga controls!) ── */
+/* ── Manga Panel Transition ── */
 .module-panel[hidden] {
   display: none !important;
+}
+
+.module-panel.panel-enter {
+  animation: panelSnap 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes panelSnap {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .panel-head {
@@ -375,6 +492,7 @@ body.awakening .manga-bg {
 .tag-chip.gold {
   background: #fff3c4;
   color: #7c4d00;
+  border-color: #b45309;
 }
 
 /* Grids */
@@ -531,7 +649,7 @@ body.awakening .manga-bg {
   font: 700 12px/1 inherit;
   cursor: pointer;
   box-shadow: 2px 3px 0 var(--soft);
-  transition: transform 0.1s;
+  transition: transform 0.1s, background 0.15s;
 }
 
 .mini-btn:hover {
@@ -564,7 +682,7 @@ body.awakening .manga-bg {
 
 .filter-pill.active {
   background: var(--ink);
-  color: #fff;
+  color: var(--page);
   box-shadow: 3px 3px 0 var(--soft);
 }
 
@@ -585,6 +703,11 @@ body.awakening .manga-bg {
   border-radius: 18px;
   box-shadow: var(--shadow);
   overflow: visible;
+  transition: transform 0.15s ease;
+}
+
+.wl-card:hover {
+  transform: translateY(-2px);
 }
 
 .wl-top {
@@ -601,6 +724,12 @@ body.awakening .manga-bg {
   overflow: hidden;
   flex-shrink: 0;
   background: var(--surface-alt);
+  cursor: pointer;
+  transition: transform 0.16s ease;
+}
+
+.wl-poster:hover {
+  transform: scale(1.04) rotate(-1.5deg);
 }
 
 .wl-poster img {
@@ -627,6 +756,11 @@ body.awakening .manga-bg {
   font-size: 16px;
   font-weight: 800;
   line-height: 1.25;
+  cursor: pointer;
+}
+
+.wl-title:hover {
+  color: var(--acc);
 }
 
 .wl-synopsis {
@@ -690,9 +824,9 @@ body.awakening .manga-bg {
   border-top: 2px dashed var(--line);
 }
 
-/* ── Module 2: Gacha Picker ── */
+/* ── Module 2: Gacha 3D Flip Reveal ── */
 .gacha-stage {
-  min-height: 440px;
+  min-height: 450px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -701,17 +835,46 @@ body.awakening .manga-bg {
   gap: 18px;
 }
 
+.gacha-flip-scene {
+  width: 100%;
+  max-width: 450px;
+  perspective: 1100px;
+}
+
+.gacha-flip-card {
+  width: 100%;
+  transform-style: preserve-3d;
+  animation: flipReveal 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes flipReveal {
+  0% {
+    opacity: 0.4;
+    transform: rotateY(165deg) scale(0.86);
+  }
+  60% {
+    opacity: 1;
+    transform: rotateY(-10deg) scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: rotateY(0deg) scale(1);
+  }
+}
+
 .gacha-card {
   width: 100%;
-  max-width: 440px;
   padding: 20px;
   background: var(--surface-alt);
   border: 3px solid var(--ink);
   border-radius: 20px;
   box-shadow: var(--shadow);
   text-align: left;
-  animation: popIn 0.38s cubic-bezier(0.34, 1.56, 0.64, 1);
   overflow: visible;
+}
+
+.gacha-card.ssr-glow {
+  box-shadow: 0 0 0 3px #ffe066, 6px 8px 0 var(--acc);
 }
 
 .gacha-rarity {
@@ -768,16 +931,42 @@ body.awakening .manga-bg {
   gap: 10px;
 }
 
-/* ── Module 3: Training Arc ── */
+/* ── Module 3: Training Arc + Aura Ring ── */
+.aura-clock-ring {
+  position: relative;
+  width: 224px;
+  height: 224px;
+  margin: 10px auto 4px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: conic-gradient(var(--acc) calc(var(--ring-pct, 0) * 1%), var(--surface-alt) 0);
+  border: 3px solid var(--ink);
+  box-shadow: 0 0 calc(var(--ring-pct, 0) * 0.25px) var(--acc), var(--shadow-sm);
+  transition: box-shadow 0.4s ease;
+}
+
+.aura-clock-inner {
+  width: 196px;
+  height: 196px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2.5px solid var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
 .timer-display {
-  font-size: clamp(52px, 8vw, 76px);
+  font-size: clamp(44px, 6vw, 54px);
   font-weight: 800;
   font-style: italic;
   letter-spacing: -0.04em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  text-shadow: 4px 4px 0 var(--soft);
-  margin: 8px 0;
+  text-shadow: 3px 3px 0 var(--soft);
+  margin: 4px 0;
 }
 
 .arc-banner {
@@ -787,7 +976,7 @@ body.awakening .manga-bg {
   padding: 6px 14px;
   border-radius: 999px;
   background: var(--ink);
-  color: #fff;
+  color: var(--page);
   font-size: 12.5px;
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -812,20 +1001,54 @@ body.awakening .manga-bg {
 }
 
 .quest-row.done {
-  opacity: 0.72;
+  opacity: 0.7;
 }
 
-/* ── Module 4: Card Forge ── */
+/* ── Module 4: Card Forge + 3D Holographic Tilt ── */
 .card-canvas-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
+}
+
+.holo-stage {
+  perspective: 950px;
+  width: 100%;
+  max-width: 390px;
+}
+
+.holo-card-shell {
+  position: relative;
+  border-radius: 22px;
+  transform-style: preserve-3d;
+  transition: transform 0.14s ease-out;
+  will-change: transform;
+}
+
+.holo-glare {
+  position: absolute;
+  inset: 0;
+  border-radius: 22px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  background: radial-gradient(
+    circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 95, 168, 0.22) 28%,
+    rgba(143, 141, 247, 0.18) 54%,
+    transparent 74%
+  );
+  mix-blend-mode: screen;
+}
+
+.holo-card-shell:hover .holo-glare {
+  opacity: 1;
 }
 
 .forge-canvas {
   width: 100%;
-  max-width: 390px;
   height: auto;
   border-radius: 22px;
   border: 3px solid var(--ink);
@@ -855,7 +1078,7 @@ body.awakening .manga-bg {
   color: #fff;
 }
 
-/* ── Module 5: Otaku Quiz ── */
+/* ── Module 5: Otaku Quiz + Blurred Poster Round ── */
 .quiz-box {
   max-width: 760px;
   margin: 0 auto;
@@ -866,6 +1089,25 @@ body.awakening .manga-bg {
   font-weight: 800;
   line-height: 1.35;
   margin: 12px 0 18px;
+}
+
+.quiz-poster-box {
+  width: 180px;
+  height: 250px;
+  margin: 0 auto 18px;
+  border-radius: 16px;
+  border: 3px solid var(--ink);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  background: var(--surface-alt);
+}
+
+.quiz-poster-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: filter 0.45s ease, transform 0.45s ease;
 }
 
 .quiz-hud {
@@ -897,6 +1139,75 @@ body.awakening .manga-bg {
 .quiz-feedback.wrong {
   background: #fee2e2;
   color: #7f1d1d;
+}
+
+/* ── Modals (Otaku Passport & Watchlist Detail) ── */
+.modal-backdrop[hidden] {
+  display: none !important;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(13, 11, 30, 0.65);
+  backdrop-filter: blur(5px);
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  animation: fadeIn 0.18s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-dialog {
+  width: 100%;
+  max-width: 580px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--surface);
+  color: var(--ink);
+  border: 3px solid var(--ink);
+  border-radius: 22px;
+  box-shadow: var(--shadow);
+  padding: 24px;
+  animation: popIn 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.badge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.ach-card {
+  padding: 12px;
+  border-radius: 14px;
+  border: 2.5px solid var(--ink);
+  background: var(--surface-alt);
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+.ach-card.locked {
+  opacity: 0.45;
+  filter: grayscale(0.8);
+}
+
+.ach-card .ach-icon {
+  font-size: 26px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* ── Sticky Mobile Bottom Nav ── */
+.mobile-bottom-nav {
+  display: none;
 }
 
 /* ── Empty State & Footer ── */
@@ -956,9 +1267,53 @@ body.awakening .manga-bg {
   }
 }
 
+@media (max-width: 720px) {
+  .main-nav {
+    display: none;
+  }
+  .mobile-bottom-nav {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    z-index: 8000;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    padding: 6px;
+    background: var(--surface);
+    border: 3px solid var(--ink);
+    border-radius: 18px;
+    box-shadow: var(--shadow-sm);
+  }
+  .mob-nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 2px;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--mute);
+    font: 800 11px/1.1 inherit;
+    cursor: pointer;
+  }
+  .mob-nav-btn span.mob-ico {
+    font-size: 17px;
+  }
+  .mob-nav-btn.active {
+    background: var(--ink);
+    color: var(--page);
+  }
+  .toast-dock {
+    bottom: 84px;
+  }
+}
+
 @media (max-width: 640px) {
   .app-shell {
-    padding: 14px 12px 90px;
+    padding: 14px 12px 110px;
   }
   .masthead {
     padding: 16px;
@@ -967,12 +1322,13 @@ body.awakening .manga-bg {
     padding: 16px;
   }
   .search-bar-row sakuga-input {
+    display: block;
+    width: 100%;
     --sk-input-width: 100%;
   }
   .toast-dock {
     right: 12px;
     left: 12px;
-    bottom: 14px;
     display: flex;
     justify-content: center;
   }

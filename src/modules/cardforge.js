@@ -1,6 +1,7 @@
 import { t, onLangChange } from '../core/i18n.js';
 import { state, addExp, notify } from '../core/store.js';
 import { playTone } from '../core/sfx.js';
+import { fxCelebrate } from '../core/fx.js';
 
 const ELEMENTS = {
   flame: { jp: '炎', bg1: '#fff1eb', bg2: '#ffd4c4', pri: '#ff4757', acc: '#ff9f1a', ink: '#2b0d14' },
@@ -53,7 +54,6 @@ export function initCardForge(root) {
     ctx.save();
     ctx.translate(w / 2, h / 2);
 
-    // Dynamic speedlines behind character emblem
     ctx.strokeStyle = card.awakened ? 'rgba(255,31,90,0.22)' : 'rgba(29,26,74,0.12)';
     for (let i = 0; i < 36; i++) {
       const ang = (i / 36) * Math.PI * 2;
@@ -64,7 +64,6 @@ export function initCardForge(root) {
       ctx.stroke();
     }
 
-    // Aura circle
     const grad = ctx.createRadialGradient(0, 0, 20, 0, 0, 155);
     grad.addColorStop(0, card.awakened ? '#ff2a55' : theme.pri);
     grad.addColorStop(0.65, theme.acc + '88');
@@ -74,13 +73,11 @@ export function initCardForge(root) {
     ctx.arc(0, 0, 155, 0, Math.PI * 2);
     ctx.fill();
 
-    // Stylized manga silhouette emblem per preset
     ctx.fillStyle = theme.ink;
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 5;
 
     if (preset === 'ronin') {
-      // Diagonal katana slash + silhouette cloak
       ctx.beginPath();
       ctx.moveTo(-125, 115);
       ctx.quadraticCurveTo(-20, -145, 130, -110);
@@ -100,7 +97,6 @@ export function initCardForge(root) {
       ctx.closePath();
       ctx.fill();
     } else if (preset === 'thunder') {
-      // Giant jagged lightning bolt
       ctx.fillStyle = '#ffe066';
       ctx.strokeStyle = theme.ink;
       ctx.lineWidth = 7;
@@ -115,7 +111,6 @@ export function initCardForge(root) {
       ctx.fill();
       ctx.stroke();
     } else if (preset === 'void') {
-      // Eclipse domain rings
       for (let r = 115; r >= 35; r -= 26) {
         ctx.beginPath();
         ctx.arc(0, 0, r, 0, Math.PI * 2);
@@ -126,7 +121,6 @@ export function initCardForge(root) {
         ctx.stroke();
       }
     } else if (preset === 'mecha') {
-      // Angular mecha V-fin & visor
       ctx.fillStyle = theme.ink;
       ctx.beginPath();
       ctx.moveTo(0, -110);
@@ -139,10 +133,8 @@ export function initCardForge(root) {
       ctx.strokeStyle = '#fff';
       ctx.lineWidth = 5;
       ctx.stroke();
-      // Glowing visor
       ctx.fillStyle = card.awakened ? '#ff2a55' : '#38bdf8';
       ctx.fillRect(-58, -22, 116, 26);
-      // V-Fin
       ctx.strokeStyle = '#ffd43b';
       ctx.lineWidth = 10;
       ctx.beginPath();
@@ -151,7 +143,6 @@ export function initCardForge(root) {
       ctx.lineTo(115, -95);
       ctx.stroke();
     } else {
-      // Sakura spirit petals star
       for (let i = 0; i < 5; i++) {
         ctx.save();
         ctx.rotate((i * Math.PI * 2) / 5);
@@ -185,14 +176,12 @@ export function initCardForge(root) {
     const H = canvas.height;
     const theme = ELEMENTS[card.element] || ELEMENTS.flame;
 
-    // Background gradient
     const bg = ctx.createLinearGradient(0, 0, W, H);
     bg.addColorStop(0, card.awakened ? '#240715' : theme.bg1);
     bg.addColorStop(1, card.awakened ? '#4a0d27' : theme.bg2);
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, W, H);
 
-    // Manga halftone dots
     ctx.fillStyle = card.awakened ? 'rgba(255,95,168,0.14)' : 'rgba(29,26,74,0.065)';
     for (let y = 16; y < H; y += 22) {
       for (let x = 16; x < W; x += 22) {
@@ -202,12 +191,10 @@ export function initCardForge(root) {
       }
     }
 
-    // Outer manga border
     ctx.strokeStyle = card.awakened ? '#ff5fa8' : theme.ink;
     ctx.lineWidth = 14;
     ctx.strokeRect(20, 20, W - 40, H - 40);
 
-    // Header bar
     ctx.fillStyle = card.awakened ? '#ff1f5a' : theme.ink;
     ctx.fillRect(42, 42, W - 84, 82);
 
@@ -215,7 +202,6 @@ export function initCardForge(root) {
     ctx.font = 'italic 800 36px "Space Grotesk", sans-serif';
     ctx.fillText((card.name || 'UNKNOWN').slice(0, 20).toUpperCase(), 62, 92);
 
-    // Element Kanji Stamp
     ctx.fillStyle = card.awakened ? '#ffe066' : theme.acc;
     ctx.beginPath();
     ctx.arc(W - 86, 83, 30, 0, Math.PI * 2);
@@ -229,7 +215,6 @@ export function initCardForge(root) {
     ctx.fillText(theme.jp, W - 86, 94);
     ctx.textAlign = 'left';
 
-    // Art Window
     const artX = 42, artY = 142, artW = W - 84, artH = 420;
     ctx.save();
     ctx.beginPath();
@@ -255,7 +240,6 @@ export function initCardForge(root) {
       ctx.restore();
     }
 
-    // Awakening holographic stripes
     if (card.awakened) {
       ctx.fillStyle = 'rgba(255, 224, 102, 0.16)';
       for (let i = -artH; i < artW; i += 64) {
@@ -269,7 +253,6 @@ export function initCardForge(root) {
       }
     }
 
-    // Epithet ribbon inside art bottom
     ctx.fillStyle = 'rgba(29, 26, 74, 0.88)';
     ctx.fillRect(artX, artY + artH - 54, artW, 54);
     ctx.fillStyle = '#ffe066';
@@ -286,7 +269,6 @@ export function initCardForge(root) {
     ctx.lineWidth = 6;
     ctx.strokeRect(artX, artY, artW, artH);
 
-    // Ultimate Move Box
     const ultY = 582;
     ctx.fillStyle = card.awakened ? '#3b0a20' : '#ffffff';
     ctx.fillRect(42, ultY, W - 84, 88);
@@ -301,7 +283,6 @@ export function initCardForge(root) {
     ctx.font = 'italic 800 28px "Space Grotesk", sans-serif';
     ctx.fillText(`「${(card.ultimate || 'Sakuga Burst').slice(0, 24)}」`, 56, ultY + 68);
 
-    // Stats Bars
     const stats = [
       ['PWR', card.power, '#ff4757'],
       ['SPD', card.speed, '#0ea5e9'],
@@ -328,7 +309,6 @@ export function initCardForge(root) {
       sy += 56;
     });
 
-    // Bottom Power Level Banner
     const pwr = calcPowerLevel();
     ctx.fillStyle = card.awakened ? '#ffe066' : theme.ink;
     ctx.fillRect(42, H - 122, W - 84, 76);
@@ -339,6 +319,27 @@ export function initCardForge(root) {
     ctx.font = 'italic 800 34px "Space Grotesk", sans-serif';
     ctx.fillText(`BP ${pwr.toLocaleString()}`, W - 62, H - 72);
     ctx.textAlign = 'left';
+  }
+
+  function wireHoloTilt() {
+    const shell = root.querySelector('#holo-shell');
+    const glare = root.querySelector('#holo-glare');
+    if (!shell || !glare) return;
+
+    shell.addEventListener('pointermove', (e) => {
+      const rect = shell.getBoundingClientRect();
+      const px = (e.clientX - rect.left) / rect.width;
+      const py = (e.clientY - rect.top) / rect.height;
+      const rx = (0.5 - py) * 18;
+      const ry = (px - 0.5) * 18;
+      shell.style.transform = `rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg) scale(1.02)`;
+      glare.style.setProperty('--mx', `${Math.round(px * 100)}%`);
+      glare.style.setProperty('--my', `${Math.round(py * 100)}%`);
+    });
+
+    shell.addEventListener('pointerleave', () => {
+      shell.style.transform = '';
+    });
   }
 
   function render() {
@@ -355,12 +356,20 @@ export function initCardForge(root) {
 
       <div class="grid-split">
         <div class="manga-card card-canvas-wrap">
-          <canvas id="forge-canvas" class="forge-canvas" width="760" height="1040"></canvas>
+          <div class="holo-stage">
+            <div class="holo-card-shell" id="holo-shell">
+              <canvas id="forge-canvas" class="forge-canvas" width="760" height="1040"></canvas>
+              <div class="holo-glare" id="holo-glare"></div>
+            </div>
+          </div>
+          <span style="font-size:12px;color:var(--mute);font-weight:700">✨ ${t('cfTiltHint')}</span>
+
           <div class="progress-stage" style="min-height:165px;padding:42px 8px 6px;width:100%">
             <sakuga-progress id="cf-power-bar" label="${t('cfPowerCharge')}" done-label="${t('cfMaxPower')}" style="--sk-progress-width: 280px;"></sakuga-progress>
           </div>
           <div class="row-wrap" style="justify-content:center">
             <sakuga-button id="cf-download">💾 ${t('cfDownload')}</sakuga-button>
+            <sakuga-button id="cf-copy" variant="secondary">📋 ${t('cfCopyImg')}</sakuga-button>
             <sakuga-button id="cf-random" variant="secondary">🎲 ${t('cfRandomize')}</sakuga-button>
           </div>
         </div>
@@ -454,6 +463,7 @@ export function initCardForge(root) {
       awakenEl.checked = card.awakened;
       drawCard();
       updatePowerMeter();
+      wireHoloTilt();
     });
 
     nameIn.addEventListener('input', () => { card.name = nameIn.value; drawCard(); });
@@ -525,8 +535,31 @@ export function initCardForge(root) {
       link.click();
       state.cardsForged += 1;
       playTone('fanfare');
+      fxCelebrate(canvas);
       dlBtn.done();
       addExp(25, t('cfDownloaded'));
+    });
+
+    const copyBtn = root.querySelector('#cf-copy');
+    copyBtn.addEventListener('click', () => {
+      const canvas = root.querySelector('#forge-canvas');
+      if (!navigator.clipboard || typeof window.ClipboardItem === 'undefined') {
+        notify(t('cfCopyFail'));
+        return;
+      }
+      canvas.toBlob(async (blob) => {
+        if (!blob) return notify(t('cfCopyFail'));
+        try {
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+          state.cardsForged += 1;
+          playTone('fanfare');
+          fxCelebrate(canvas);
+          copyBtn.done();
+          addExp(15, t('cfCopied'));
+        } catch {
+          notify(t('cfCopyFail'));
+        }
+      }, 'image/png');
     });
   }
 

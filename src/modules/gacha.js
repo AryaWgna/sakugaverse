@@ -2,6 +2,7 @@ import { t, onLangChange } from '../core/i18n.js';
 import { state, addExp, addToWatchlist, saveState } from '../core/store.js';
 import { summonAnime } from '../core/jikan.js';
 import { playTone } from '../core/sfx.js';
+import { fxSSR, fxCelebrate } from '../core/fx.js';
 
 const GENRES = ['Action', 'Adventure', 'Comedy', 'Drama', 'Fantasy', 'Romance', 'Sci-Fi', 'Slice of Life'];
 const FALLBACK_SVG =
@@ -22,14 +23,14 @@ export function initGacha(root) {
     return { code: 'R', cls: 'r' };
   }
 
-  function renderResult() {
+  function renderResult(withFx = false) {
     const slot = root.querySelector('#gacha-result-slot');
     const histEl = root.querySelector('#gacha-history');
     if (histEl) {
       histEl.innerHTML = state.gachaHistory.length
         ? state.gachaHistory
             .slice(0, 6)
-            .map((h) => `<span class="tag-chip">${h.rarity} · ${escapeHtml(h.title)}</span>`)
+            .map((h) => `<span class="tag-chip ${h.rarity === 'SSR' ? 'gold' : ''}">${h.rarity} · ${escapeHtml(h.title)}</span>`)
             .join('')
         : `<span style="color:var(--mute);font-size:13px">—</span>`;
     }
@@ -41,31 +42,42 @@ export function initGacha(root) {
 
     const rarity = getRarity(currentPull.score || 8);
     slot.innerHTML = `
-      <div class="gacha-card">
-        <span class="gacha-rarity ${rarity.cls}">${rarity.code} · ★ ${currentPull.score || '8.0'}</span>
-        <div class="gacha-result-top">
-          <div class="gacha-poster">
-            <img src="${currentPull.image || FALLBACK_SVG}" alt="" onerror="this.src='${FALLBACK_SVG}'">
-          </div>
-          <div style="flex:1;min-width:0">
-            <h3 style="margin:0 0 6px;font-size:18px;font-weight:800;line-height:1.2">${escapeHtml(currentPull.title)}</h3>
-            <p style="margin:0 0 8px;font-size:12.5px;color:var(--mute);font-weight:700">
-              ${currentPull.type || 'TV'} · ${currentPull.episodes || '?'} eps · ${currentPull.year || ''}
-            </p>
-            <div class="row-wrap" style="gap:5px;margin-bottom:8px">
-              ${(currentPull.genres || []).slice(0, 3).map((g) => `<span class="tag-chip">${escapeHtml(g)}</span>`).join('')}
+      <div class="gacha-flip-scene">
+        <div class="gacha-flip-card">
+          <div class="gacha-card ${rarity.code === 'SSR' ? 'ssr-glow' : ''}">
+            <span class="gacha-rarity ${rarity.cls}">${rarity.code} · ★ ${currentPull.score || '8.0'}</span>
+            <div class="gacha-result-top">
+              <div class="gacha-poster">
+                <img src="${currentPull.image || FALLBACK_SVG}" alt="" onerror="this.src='${FALLBACK_SVG}'">
+              </div>
+              <div style="flex:1;min-width:0">
+                <h3 style="margin:0 0 6px;font-size:18px;font-weight:800;line-height:1.2">${escapeHtml(currentPull.title)}</h3>
+                <p style="margin:0 0 8px;font-size:12.5px;color:var(--mute);font-weight:700">
+                  ${currentPull.type || 'TV'} · ${currentPull.episodes || '?'} eps · ${currentPull.year || ''}
+                </p>
+                <div class="row-wrap" style="gap:5px;margin-bottom:8px">
+                  ${(currentPull.genres || []).slice(0, 3).map((g) => `<span class="tag-chip">${escapeHtml(g)}</span>`).join('')}
+                </div>
+                <p style="margin:0;font-size:12.5px;color:var(--mute);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">
+                  ${escapeHtml(currentPull.synopsis || '')}
+                </p>
+              </div>
             </div>
-            <p style="margin:0;font-size:12.5px;color:var(--mute);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">
-              ${escapeHtml(currentPull.synopsis || '')}
-            </p>
+            <div class="row-wrap" style="margin-top:16px;justify-content:space-between">
+              <sakuga-button id="gc-add-wl">${t('gcAddWatchlist')}</sakuga-button>
+              <sakuga-button id="gc-reroll" variant="secondary">${t('gcPullAgain')}</sakuga-button>
+            </div>
           </div>
-        </div>
-        <div class="row-wrap" style="margin-top:16px;justify-content:space-between">
-          <sakuga-button id="gc-add-wl">${t('gcAddWatchlist')}</sakuga-button>
-          <sakuga-button id="gc-reroll" variant="secondary">${t('gcPullAgain')}</sakuga-button>
         </div>
       </div>
     `;
+
+    if (withFx) {
+      requestAnimationFrame(() => {
+        if (rarity.code === 'SSR') fxSSR(slot);
+        else fxCelebrate(slot);
+      });
+    }
 
     const addBtn = slot.querySelector('#gc-add-wl');
     addBtn.addEventListener('click', () => {
@@ -126,7 +138,7 @@ export function initGacha(root) {
       summonBtn.done();
     }
     pulling = false;
-    renderResult();
+    renderResult(true);
   }
 
   function render() {
@@ -219,7 +231,7 @@ export function initGacha(root) {
     });
 
     root.querySelector('#gacha-summon-btn').addEventListener('click', triggerSummon);
-    renderResult();
+    renderResult(false);
   }
 
   render();

@@ -2,11 +2,12 @@ import { t, onLangChange } from '../core/i18n.js';
 import { state, saveState, subscribe, addExp, addToWatchlist, notify } from '../core/store.js';
 import { searchAnime } from '../core/jikan.js';
 import { playTone } from '../core/sfx.js';
+import { fxCelebrate } from '../core/fx.js';
 
 const FALLBACK_SVG =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 170'%3E%3Crect width='120' height='170' fill='%23edeaff'/%3E%3Ctext x='60' y='88' text-anchor='middle' font-family='sans-serif' font-weight='800' font-size='16' fill='%235a4fd8'%3EANIME%3C/text%3E%3C/svg%3E";
 
-export function initWatchlist(root) {
+export function initWatchlist(root, { openModal } = {}) {
   let activeFilter = 'all';
   let spoilerFree = false;
   let searchResults = [];
@@ -35,6 +36,76 @@ export function initWatchlist(root) {
     if (bar && typeof bar.set === 'function') {
       bar.set(calcOverallProgress(), instant);
     }
+  }
+
+  function updateFilterCounts() {
+    const counts = { all: state.watchlist.length, watching: 0, completed: 0, plan: 0 };
+    state.watchlist.forEach((a) => counts[getStatus(a)]++);
+    const map = {
+      all: `${t('wlFilterAll')} (${counts.all})`,
+      watching: `${t('wlFilterWatching')} (${counts.watching})`,
+      completed: `${t('wlFilterCompleted')} (${counts.completed})`,
+      plan: `${t('wlFilterPlan')} (${counts.plan})`
+    };
+    root.querySelectorAll('[data-filter]').forEach((btn) => {
+      if (map[btn.dataset.filter]) btn.textContent = map[btn.dataset.filter];
+    });
+  }
+
+  function openAnimeDetail(anime) {
+    if (typeof openModal !== 'function') return;
+    const maxEp = Math.max(1, anime.episodes || 12);
+    const malUrl = anime.mal_id && anime.mal_id < 9999999 ? `https://myanimelist.net/anime/${anime.mal_id}` : '';
+    openModal(
+      `
+      <div class="row-wrap" style="justify-content:space-between;margin-bottom:14px">
+        <span class="tag-chip gold">MAL ★ ${anime.score || '—'} · ${anime.year || ''}</span>
+        <button type="button" class="mini-btn" id="detail-close">✕ ${t('closeBtn')}</button>
+      </div>
+      <div class="gacha-result-top" style="margin-bottom:16px">
+        <div class="gacha-poster">
+          <img src="${anime.image || FALLBACK_SVG}" alt="" onerror="this.src='${FALLBACK_SVG}'">
+        </div>
+        <div style="flex:1;min-width:0">
+          <h3 style="margin:0 0 8px;font-size:21px;font-weight:800;line-height:1.2">${escapeHtml(anime.title)}</h3>
+          <div class="row-wrap" style="gap:6px;margin-bottom:10px">
+            <span class="tag-chip pri">${anime.type || 'TV'} · ${maxEp} EPS</span>
+            ${(anime.genres || []).slice(0, 3).map((g) => `<span class="tag-chip">${escapeHtml(g)}</span>`).join('')}
+          </div>
+          <p style="margin:0;font-size:13.5px;color:var(--mute);line-height:1.55">${escapeHtml(anime.synopsis || '')}</p>
+        </div>
+      </div>
+
+      <div class="manga-card soft" style="padding:14px;box-shadow:var(--shadow-sm)">
+        <div class="field-group">
+          <span class="field-title">${t('wlQuickEp')} (${anime.watched} / ${maxEp})</span>
+          <div class="slider-slot">
+            <sakuga-slider id="detail-ep-slider" min="0" max="${maxEp}" step="1" value="${anime.watched}" unit=" ep" label="${t('wlQuickEp')}" style="--sk-slider-width:100%"></sakuga-slider>
+          </div>
+        </div>
+      </div>
+
+      ${malUrl ? `<div style="margin-top:16px;text-align:right"><a class="mini-btn" href="${malUrl}" target="_blank" rel="noopener">${t('wlOpenMal')}</a></div>` : ''}
+      `,
+      (dialog, close) => {
+        dialog.querySelector('#detail-close')?.addEventListener('click', close);
+        const epSlider = dialog.querySelector('#detail-ep-slider');
+        epSlider?.addEventListener('change', () => {
+          const prev = anime.watched;
+          anime.watched = Number(epSlider.value) || 0;
+          if (anime.watched === maxEp && prev < maxEp) {
+            playTone('fanfare');
+            fxCelebrate(dialog);
+            addExp(40, t('wlCompletedToast', anime.title));
+          } else {
+            playTone('chime');
+            saveState();
+          }
+          renderList();
+          updateOverallBar();
+        });
+      }
+    );
   }
 
   function renderSearchResults() {
@@ -118,12 +189,12 @@ export function initWatchlist(root) {
       card.className = 'wl-card';
       card.innerHTML = `
         <div class="wl-top">
-          <div class="wl-poster">
+          <div class="wl-poster" data-open-detail title="${t('wlDetailBtn')}">
             <img src="${anime.image || FALLBACK_SVG}" alt="" loading="lazy" onerror="this.src='${FALLBACK_SVG}'">
           </div>
           <div class="wl-info">
             <div class="wl-title-row">
-              <h3 class="wl-title">${escapeHtml(anime.title)}</h3>
+              <h3 class="wl-title" data-open-detail>${escapeHtml(anime.title)}</h3>
               <sakuga-tooltip text="${escapeAttr((anime.synopsis || '').slice(0, 160))}" label="Synopsis"></sakuga-tooltip>
             </div>
             <div class="row-wrap" style="margin-top:6px;gap:6px">
@@ -152,7 +223,13 @@ export function initWatchlist(root) {
         </div>
       `;
 
-      // Wire Rating
+      card.querySelectorAll('[data-open-detail]').forEach((el) => {
+        el.addEventListener('click', () => {
+          playTone('chime');
+          openAnimeDetail(anime);
+        });
+      });
+
       const ratingEl = card.querySelector('sakuga-rating');
       requestAnimationFrame(() => {
         if (anime.rating) ratingEl.value = anime.rating;
@@ -163,7 +240,6 @@ export function initWatchlist(root) {
         if (anime.rating > 0) notify(t('wlRatingSaved', anime.rating));
       });
 
-      // Wire Favorite Checkbox
       const favEl = card.querySelector('sakuga-checkbox');
       requestAnimationFrame(() => {
         favEl.checked = Boolean(anime.favorite);
@@ -173,7 +249,6 @@ export function initWatchlist(root) {
         saveState();
       });
 
-      // Wire Episode +/- buttons (update in-place so sakuga animations on card stay smooth)
       card.querySelectorAll('[data-ep-delta]').forEach((btn) => {
         btn.addEventListener('click', () => {
           const delta = Number(btn.dataset.epDelta);
@@ -183,6 +258,7 @@ export function initWatchlist(root) {
           if (anime.watched !== prev) {
             if (anime.watched === anime.episodes && prev < anime.episodes) {
               playTone('fanfare');
+              fxCelebrate(card);
               addExp(40, t('wlCompletedToast', anime.title));
             } else {
               playTone('chime');
@@ -209,7 +285,6 @@ export function initWatchlist(root) {
         });
       });
 
-      // Wire Remove
       card.querySelector('[data-remove]').addEventListener('click', () => {
         const idx = state.watchlist.findIndex((x) => x.mal_id === anime.mal_id && x.title === anime.title);
         if (idx !== -1) {
@@ -305,24 +380,9 @@ export function initWatchlist(root) {
     renderList();
   }
 
-  function updateFilterCounts() {
-    const counts = { all: state.watchlist.length, watching: 0, completed: 0, plan: 0 };
-    state.watchlist.forEach((a) => counts[getStatus(a)]++);
-    const map = {
-      all: `${t('wlFilterAll')} (${counts.all})`,
-      watching: `${t('wlFilterWatching')} (${counts.watching})`,
-      completed: `${t('wlFilterCompleted')} (${counts.completed})`,
-      plan: `${t('wlFilterPlan')} (${counts.plan})`
-    };
-    root.querySelectorAll('[data-filter]').forEach((btn) => {
-      if (map[btn.dataset.filter]) btn.textContent = map[btn.dataset.filter];
-    });
-  }
-
   render();
   onLangChange(render);
   subscribe(() => {
-    // Only re-render grid when watchlist items are added/removed externally (e.g., from Gacha)
     const sig = getListSig();
     if (sig !== lastListSig) {
       renderList();

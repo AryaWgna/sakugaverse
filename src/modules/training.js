@@ -1,12 +1,13 @@
 import { t, onLangChange } from '../core/i18n.js';
 import { state, saveState, addExp } from '../core/store.js';
-import { playTone, setSfxEnabled } from '../core/sfx.js';
+import { playTone, setSfxEnabled, toggleAmbient, isAmbientPlaying } from '../core/sfx.js';
+import { fxSSR, fxCombo } from '../core/fx.js';
 
 export function initTraining(root) {
   let arc = 'chamber';
   let focusMin = 25;
   let breakMin = 5;
-  let phase = 'focus'; // 'focus' | 'break'
+  let phase = 'focus';
   let remainingSec = focusMin * 60;
   let running = false;
   let sfxOn = true;
@@ -31,10 +32,12 @@ export function initTraining(root) {
     const clock = root.querySelector('#tr-clock');
     const phaseEl = root.querySelector('#tr-phase');
     const bar = root.querySelector('#tr-progress');
+    const ring = root.querySelector('#tr-aura-ring');
+    const pct = Math.max(0, Math.min(1, 1 - remainingSec / Math.max(1, totalSec())));
     if (clock) clock.textContent = formatTime(remainingSec);
     if (phaseEl) phaseEl.textContent = phase === 'focus' ? t('trPhaseFocus') : t('trPhaseBreak');
+    if (ring) ring.style.setProperty('--ring-pct', String(Math.round(pct * 100)));
     if (bar && typeof bar.set === 'function') {
-      const pct = Math.max(0, Math.min(1, 1 - remainingSec / Math.max(1, totalSec())));
       bar.set(pct, instant);
     }
   }
@@ -43,8 +46,11 @@ export function initTraining(root) {
     stopTimer();
     remainingSec = 0;
     const bar = root.querySelector('#tr-progress');
+    const ring = root.querySelector('#tr-aura-ring');
+    if (ring) ring.style.setProperty('--ring-pct', '100');
     if (bar) bar.set(1);
     playTone('fanfare');
+    fxSSR(ring || bar);
 
     if (phase === 'focus') {
       state.sessionsDone += 1;
@@ -123,6 +129,7 @@ export function initTraining(root) {
         row.classList.toggle('done', q.done);
         if (q.done && !wasDone) {
           playTone('impact');
+          fxCombo(row);
           addExp(20, t('trQuestDone', q.text));
         } else {
           saveState();
@@ -147,8 +154,14 @@ export function initTraining(root) {
           <p class="panel-desc">${t('trDesc')}</p>
         </div>
         <div class="row-wrap">
-          <span class="field-title" style="margin:0">${t('trSfxToggle')}</span>
-          <sakuga-toggle id="tr-sfx" label="${t('trSfxToggle')}"></sakuga-toggle>
+          <div class="row-wrap" style="gap:8px">
+            <span class="field-title" style="margin:0">🌧️ ${t('trAmbientToggle')}</span>
+            <sakuga-toggle id="tr-ambient" label="${t('trAmbientToggle')}"></sakuga-toggle>
+          </div>
+          <div class="row-wrap" style="gap:8px">
+            <span class="field-title" style="margin:0">🔊 ${t('trSfxToggle')}</span>
+            <sakuga-toggle id="tr-sfx" label="${t('trSfxToggle')}"></sakuga-toggle>
+          </div>
         </div>
       </div>
 
@@ -157,10 +170,14 @@ export function initTraining(root) {
           <div class="manga-card" style="text-align:center">
             <div class="row-wrap" style="justify-content:center;gap:8px;margin-bottom:8px">
               <span class="arc-banner" id="tr-arc-banner">🔥 ${escapeHtml(arcs[arc])}</span>
-              <span class="tag-chip accent" id="tr-phase">${phase === 'focus' ? t('trPhaseFocus') : t('trPhaseBreak')}</span>
             </div>
 
-            <div class="timer-display" id="tr-clock">${formatTime(remainingSec)}</div>
+            <div class="aura-clock-ring" id="tr-aura-ring" style="--ring-pct: 0">
+              <div class="aura-clock-inner">
+                <span class="tag-chip accent" id="tr-phase" style="margin-bottom:4px">${phase === 'focus' ? t('trPhaseFocus') : t('trPhaseBreak')}</span>
+                <div class="timer-display" id="tr-clock">${formatTime(remainingSec)}</div>
+              </div>
+            </div>
 
             <div class="progress-stage" style="min-height:175px;padding:48px 10px 10px">
               <sakuga-progress id="tr-progress" label="${t('trProgressLabel')}" done-label="${t('trDoneLabel')}" style="--sk-progress-width: 300px;"></sakuga-progress>
@@ -220,13 +237,18 @@ export function initTraining(root) {
     `;
 
     const sfxEl = root.querySelector('#tr-sfx');
+    const ambEl = root.querySelector('#tr-ambient');
     requestAnimationFrame(() => {
       sfxEl.checked = sfxOn;
+      ambEl.checked = isAmbientPlaying();
       updateClockUI(true);
     });
     sfxEl.addEventListener('change', () => {
       sfxOn = Boolean(sfxEl.checked);
       setSfxEnabled(sfxOn);
+    });
+    ambEl.addEventListener('change', () => {
+      toggleAmbient(Boolean(ambEl.checked));
     });
 
     root.querySelector('#tr-start-btn').addEventListener('click', toggleTimer);

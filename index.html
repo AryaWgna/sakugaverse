@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>SakugaVerse — 作画ヴァース | All-in-One Anime Hub</title>
-  <meta name="description" content="All-in-one anime super-app powered by Sakuga VFX: Watchlist tracker, Anime Gacha Picker, Shonen Training Arc Pomodoro, Power Card Forge, and Otaku Quiz Arena.">
+  <meta name="description" content="All-in-one anime super-app powered by Sakuga VFX: Watchlist tracker, 3D Anime Gacha Picker, Shonen Training Arc Pomodoro, 3D Holo Power Card Forge, and Otaku Quiz Arena.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
@@ -17,7 +17,7 @@
     <!-- Top Masthead -->
     <header class="masthead">
       <div class="brand-block">
-        <div class="brand-badge">作画ヴァース</div>
+        <div class="brand-badge">作画ヴァース · V2</div>
         <div class="brand-row">
           <h1 class="brand-title">SAKUGA<span>VERSE</span></h1>
           <sakuga-tooltip id="brand-tooltip" text="Powered by Sakuga VFX"></sakuga-tooltip>
@@ -26,8 +26,8 @@
       </div>
 
       <div class="hub-controls">
-        <!-- Otaku Rank Card -->
-        <div class="rank-pill" id="rank-pill">
+        <!-- Clickable Otaku Rank Pill -> Opens Passport & Achievements Modal -->
+        <button type="button" class="rank-pill" id="rank-pill" title="Otaku Passport & Achievements">
           <div class="rank-top">
             <span class="rank-lvl" id="rank-lvl">LV.1</span>
             <span class="rank-name" id="rank-name">Genin</span>
@@ -36,7 +36,7 @@
           <div class="rank-bar-track">
             <div class="rank-bar-fill" id="rank-bar-fill" style="width: 0%"></div>
           </div>
-        </div>
+        </button>
 
         <!-- Language Switcher -->
         <div class="lang-switch" role="group" aria-label="Language">
@@ -44,6 +44,9 @@
           <button type="button" class="lang-btn" data-lang="en">EN</button>
           <button type="button" class="lang-btn" data-lang="jp">日本語</button>
         </div>
+
+        <!-- Dark Midnight Mode Quick Button -->
+        <button type="button" class="icon-pill" id="dark-mode-btn" aria-label="Toggle Midnight Dark Mode" title="Midnight Manga Dark Mode">🌙</button>
 
         <!-- Awakening Mode Toggle -->
         <div class="awaken-wrap">
@@ -74,6 +77,14 @@
       </p>
       <div class="footer-stats" id="footer-stats"></div>
     </footer>
+  </div>
+
+  <!-- Sticky Mobile Bottom Nav -->
+  <nav class="mobile-bottom-nav" id="mobile-bottom-nav" aria-label="Mobile quick navigation"></nav>
+
+  <!-- Global Modal Host (Otaku Passport & Watchlist Detail) -->
+  <div class="modal-backdrop" id="modal-backdrop" hidden>
+    <div class="modal-dialog" id="modal-dialog" role="dialog" aria-modal="true"></div>
   </div>
 
   <!-- Global Fixed Toast -->
