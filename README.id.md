@@ -16,7 +16,23 @@
 
 **SakugaVerse** adalah web app anime serba ada yang dibangun dengan Web Components [**Sakuga VFX**](https://github.com/finktheartist/sakuga-vfx) — di mana setiap tombol, slider, toggle, checkbox, tab, dan progress bar bereaksi seperti animasi anime gambar tangan (*impact frame, kepulan asap, efek tebasan, speed lines, dan huruf SFX manga seperti ドン!, ゴゴゴゴ, ズザッ*).
 
-Dilengkapi **pengganti bahasa UI real-time (`ID` / `EN` / `日本語`)**, sistem **Otaku Rank & EXP**, dan sakelar tema global **Awakening Mode**.
+Dilengkapi **pengganti bahasa UI real-time (`ID` / `EN` / `日本語`)**, sistem **Otaku Rank & EXP**, **Midnight Dark Mode**, **Anime Boot Intro**, dan sakelar tema global **Awakening Mode**.
+
+---
+
+## Tangkapan Layar (Screenshots)
+
+| Mode Gelap Midnight (Watchlist) | Mode Terang Sakura Manga |
+| :---: | :---: |
+| ![Watchlist Dark Mode](./docs/screenshots/watchlist-dark.png) | ![Watchlist Light Mode](./docs/screenshots/watchlist-light.png) |
+
+| Anime Gacha Picker | Training Arc Pomodoro & Quests |
+| :---: | :---: |
+| ![Anime Gacha Picker](./docs/screenshots/gacha.png) | ![Training Arc Pomodoro](./docs/screenshots/training.png) |
+
+| Power Card Forge (3D Holo Tilt) | Otaku Arena Quiz |
+| :---: | :---: |
+| ![Power Card Forge](./docs/screenshots/cardforge.png) | ![Otaku Arena Quiz](./docs/screenshots/quiz.png) |
 
 ---
 

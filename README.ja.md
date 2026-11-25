@@ -16,7 +16,23 @@
 
 **SakugaVerse（作画ヴァース）** は、[**Sakuga VFX**](https://github.com/finktheartist/sakuga-vfx) Web Components を採用したオールインワン・アニメWebアプリです。すべてのボタン、スライダー、トグル、チェックボックス、タブ、プログレスバーが、手描きアニメのように反応します（*インパクトフレーム、煙、斬撃、スピード線、「ドン！」「ゴゴゴゴ」「ズザッ」などの漫画擬音エフェクト*）。
 
-リアルタイムの **3言語UI切替（`ID` / `EN` / `日本語`）**、永続保存される **オタクランク＆EXPシステム**、テーマを一瞬で変える **覚醒モード（Awakening Mode）** を搭載しています。
+リアルタイムの **3言語UI切替（`ID` / `EN` / `日本語`）**、永続保存される **オタクランク＆EXPシステム**、**ミッドナイト漫画ダークモード**、**アニメ風ブート演出**、テーマを一瞬で変える **覚醒モード（Awakening Mode）** を搭載しています。
+
+---
+
+## スクリーンショット
+
+| ミッドナイトダークモード（視聴リスト） | サクラ漫画ライトモード |
+| :---: | :---: |
+| ![Watchlist Dark Mode](./docs/screenshots/watchlist-dark.png) | ![Watchlist Light Mode](./docs/screenshots/watchlist-light.png) |
+
+| アニメガチャ・ピッカー | 修行アーク・ポモドーロ＆クエスト |
+| :---: | :---: |
+| ![Anime Gacha Picker](./docs/screenshots/gacha.png) | ![Training Arc Pomodoro](./docs/screenshots/training.png) |
+
+| パワーカード鍛冶（3Dホロ傾き） | オタクアリーナ・クイズ |
+| :---: | :---: |
+| ![Power Card Forge](./docs/screenshots/cardforge.png) | ![Otaku Arena Quiz](./docs/screenshots/quiz.png) |
 
 ---
 
