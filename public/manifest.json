@@ -1,0 +1,16 @@
+{
+  "name": "SakugaVerse — All-in-One Anime Hub",
+  "short_name": "SakugaVerse",
+  "description": "All-in-one interactive anime hub powered by Sakuga VFX: Watchlist, Gacha Picker, Training Arc Pomodoro, Power Card Forge, and Otaku Quiz Arena.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d0b1e",
+  "theme_color": "#8f8df7",
+  "icons": [
+    {
+      "src": "/og-cover.png",
+      "sizes": "1920x1230",
+      "type": "image/png"
+    }
+  ]
+}
