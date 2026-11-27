@@ -234,6 +234,7 @@ function loadState() {
           }
         }
       }
+      const today = new Date().toISOString().slice(0, 10);
       const next = {
         starterPackVersion: STARTER_PACK_VERSION,
         exp: Number(parsed.exp) || 0,
@@ -241,10 +242,15 @@ function loadState() {
         darkMode: Boolean(parsed.darkMode),
         watchlist,
         gachaHistory: Array.isArray(parsed.gachaHistory) ? parsed.gachaHistory : [],
+        gachaPity: Number(parsed.gachaPity) || 0,
         quests: Array.isArray(parsed.quests) ? parsed.quests : null,
         quizBest: Number(parsed.quizBest) || 0,
         quizMaxStreak: Number(parsed.quizMaxStreak) || 0,
+        survivalBest: Number(parsed.survivalBest) || 0,
+        higherLowerBest: Number(parsed.higherLowerBest) || 0,
         sessionsDone: Number(parsed.sessionsDone) || 0,
+        focusMinutesToday: parsed.focusDate === today ? Number(parsed.focusMinutesToday) || 0 : 0,
+        focusDate: today,
         cardsForged: Number(parsed.cardsForged) || 0
       };
       if (packVer < STARTER_PACK_VERSION) {
@@ -262,10 +268,15 @@ function loadState() {
     darkMode: false,
     watchlist: STARTER_WATCHLIST.map((a) => ({ ...a })),
     gachaHistory: [],
+    gachaPity: 0,
     quests: null,
     quizBest: 0,
     quizMaxStreak: 0,
+    survivalBest: 0,
+    higherLowerBest: 0,
     sessionsDone: 0,
+    focusMinutesToday: 0,
+    focusDate: new Date().toISOString().slice(0, 10),
     cardsForged: 0
   };
 }

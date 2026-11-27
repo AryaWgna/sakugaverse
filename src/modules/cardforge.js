@@ -1,5 +1,6 @@
 import { t, onLangChange } from '../core/i18n.js';
 import { state, addExp, notify } from '../core/store.js';
+import { searchCharacters, FALLBACK_CHARACTERS } from '../core/jikan.js';
 import { playTone } from '../core/sfx.js';
 import { fxCelebrate } from '../core/fx.js';
 
@@ -9,6 +10,13 @@ const ELEMENTS = {
   void: { jp: '呪', bg1: '#f3efff', bg2: '#d9d2ff', pri: '#6c5ce7', acc: '#ff4f9a', ink: '#1b1440' },
   mecha: { jp: '機', bg1: '#eef8ff', bg2: '#c7e8ff', pri: '#0284c7', acc: '#ff3864', ink: '#0f172a' },
   spirit: { jp: '桜', bg1: '#fff0f6', bg2: '#ffd0e5', pri: '#ff5fa8', acc: '#8f8df7', ink: '#2c0b1d' }
+};
+
+const FRAMES = {
+  manga: { bg1: null, bg2: null, border: null, dark: false },
+  cyber: { bg1: '#071124', bg2: '#0f2547', border: '#38bdf8', dark: true, accent: '#22d3ee' },
+  cursed: { bg1: '#140826', bg2: '#2d0f4f', border: '#a855f7', dark: true, accent: '#ff5fa8' },
+  gold: { bg1: '#2e1e05', bg2: '#6b4509', border: '#ffd43b', dark: true, accent: '#ffe066' }
 };
 
 const PRESETS = [
@@ -25,6 +33,7 @@ export function initCardForge(root) {
     title: 'Crimson Blade',
     ultimate: 'Zantetsu Eclipse',
     element: 'flame',
+    frame: 'manga',
     preset: 'ronin',
     power: 88,
     speed: 92,
@@ -34,6 +43,7 @@ export function initCardForge(root) {
     awakened: false,
     customImg: null
   };
+  let charResults = FALLBACK_CHARACTERS;
 
   function calcPowerLevel() {
     const base = (card.power + card.speed + card.spirit + card.aura) * 20;
@@ -51,11 +61,11 @@ export function initCardForge(root) {
     }
   }
 
-  function drawProceduralArt(ctx, w, h, preset, theme) {
+  function drawProceduralArt(ctx, w, h, preset, theme, isDark) {
     ctx.save();
     ctx.translate(w / 2, h / 2);
 
-    ctx.strokeStyle = card.awakened ? 'rgba(255,31,90,0.22)' : 'rgba(29,26,74,0.12)';
+    ctx.strokeStyle = isDark ? 'rgba(255,95,168,0.24)' : 'rgba(29,26,74,0.12)';
     for (let i = 0; i < 36; i++) {
       const ang = (i / 36) * Math.PI * 2;
       ctx.lineWidth = i % 3 === 0 ? 4 : 2;
@@ -66,7 +76,7 @@ export function initCardForge(root) {
     }
 
     const grad = ctx.createRadialGradient(0, 0, 20, 0, 0, 155);
-    grad.addColorStop(0, card.awakened ? '#ff2a55' : theme.pri);
+    grad.addColorStop(0, isDark ? '#ff2a55' : theme.pri);
     grad.addColorStop(0.65, theme.acc + '88');
     grad.addColorStop(1, 'transparent');
     ctx.fillStyle = grad;
@@ -84,7 +94,7 @@ export function initCardForge(root) {
       ctx.quadraticCurveTo(-20, -145, 130, -110);
       ctx.quadraticCurveTo(20, -60, -85, 135);
       ctx.closePath();
-      ctx.fillStyle = card.awakened ? '#ff1f5a' : theme.acc;
+      ctx.fillStyle = isDark ? '#ff1f5a' : theme.acc;
       ctx.fill();
       ctx.stroke();
 
@@ -134,7 +144,7 @@ export function initCardForge(root) {
       ctx.strokeStyle = '#fff';
       ctx.lineWidth = 5;
       ctx.stroke();
-      ctx.fillStyle = card.awakened ? '#ff2a55' : '#38bdf8';
+      ctx.fillStyle = isDark ? '#ff2a55' : '#38bdf8';
       ctx.fillRect(-58, -22, 116, 26);
       ctx.strokeStyle = '#ffd43b';
       ctx.lineWidth = 10;
@@ -176,14 +186,16 @@ export function initCardForge(root) {
     const W = canvas.width;
     const H = canvas.height;
     const theme = ELEMENTS[card.element] || ELEMENTS.flame;
+    const frame = FRAMES[card.frame] || FRAMES.manga;
+    const isDark = card.awakened || frame.dark;
 
     const bg = ctx.createLinearGradient(0, 0, W, H);
-    bg.addColorStop(0, card.awakened ? '#240715' : theme.bg1);
-    bg.addColorStop(1, card.awakened ? '#4a0d27' : theme.bg2);
+    bg.addColorStop(0, card.awakened ? '#240715' : frame.bg1 || theme.bg1);
+    bg.addColorStop(1, card.awakened ? '#4a0d27' : frame.bg2 || theme.bg2);
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, W, H);
 
-    ctx.fillStyle = card.awakened ? 'rgba(255,95,168,0.14)' : 'rgba(29,26,74,0.065)';
+    ctx.fillStyle = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(29,26,74,0.065)';
     for (let y = 16; y < H; y += 22) {
       for (let x = 16; x < W; x += 22) {
         ctx.beginPath();
@@ -192,25 +204,26 @@ export function initCardForge(root) {
       }
     }
 
-    ctx.strokeStyle = card.awakened ? '#ff5fa8' : theme.ink;
+    const borderCol = card.awakened ? '#ff5fa8' : frame.border || theme.ink;
+    ctx.strokeStyle = borderCol;
     ctx.lineWidth = 14;
     ctx.strokeRect(20, 20, W - 40, H - 40);
 
-    ctx.fillStyle = card.awakened ? '#ff1f5a' : theme.ink;
+    ctx.fillStyle = card.awakened ? '#ff1f5a' : frame.border || theme.ink;
     ctx.fillRect(42, 42, W - 84, 82);
 
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'italic 800 36px "Space Grotesk", sans-serif';
+    ctx.fillStyle = card.frame === 'gold' && !card.awakened ? '#2e1e05' : '#ffffff';
+    ctx.font = 'italic 800 35px "Space Grotesk", sans-serif';
     ctx.fillText((card.name || 'UNKNOWN').slice(0, 20).toUpperCase(), 62, 92);
 
-    ctx.fillStyle = card.awakened ? '#ffe066' : theme.acc;
+    ctx.fillStyle = isDark ? '#ffe066' : theme.acc;
     ctx.beginPath();
     ctx.arc(W - 86, 83, 30, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 4;
     ctx.stroke();
-    ctx.fillStyle = card.awakened ? '#240715' : '#ffffff';
+    ctx.fillStyle = isDark ? '#240715' : '#ffffff';
     ctx.font = '800 30px "M PLUS Rounded 1c", sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(theme.jp, W - 86, 94);
@@ -223,7 +236,7 @@ export function initCardForge(root) {
     ctx.clip();
 
     const artGrad = ctx.createLinearGradient(artX, artY, artX + artW, artY + artH);
-    artGrad.addColorStop(0, '#ffffff');
+    artGrad.addColorStop(0, isDark ? '#1a1230' : '#ffffff');
     artGrad.addColorStop(1, theme.bg2);
     ctx.fillStyle = artGrad;
     ctx.fillRect(artX, artY, artW, artH);
@@ -237,11 +250,11 @@ export function initCardForge(root) {
     } else {
       ctx.save();
       ctx.translate(artX, artY);
-      drawProceduralArt(ctx, artW, artH, card.preset, theme);
+      drawProceduralArt(ctx, artW, artH, card.preset, theme, isDark);
       ctx.restore();
     }
 
-    if (card.awakened) {
+    if (card.awakened || card.frame === 'gold') {
       ctx.fillStyle = 'rgba(255, 224, 102, 0.16)';
       for (let i = -artH; i < artW; i += 64) {
         ctx.beginPath();
@@ -254,7 +267,7 @@ export function initCardForge(root) {
       }
     }
 
-    ctx.fillStyle = 'rgba(29, 26, 74, 0.88)';
+    ctx.fillStyle = 'rgba(20, 14, 42, 0.88)';
     ctx.fillRect(artX, artY + artH - 54, artW, 54);
     ctx.fillStyle = '#ffe066';
     ctx.font = '800 22px "Space Grotesk", sans-serif';
@@ -266,21 +279,21 @@ export function initCardForge(root) {
     ctx.textAlign = 'left';
     ctx.restore();
 
-    ctx.strokeStyle = card.awakened ? '#ffe066' : theme.ink;
+    ctx.strokeStyle = isDark ? '#ffe066' : theme.ink;
     ctx.lineWidth = 6;
     ctx.strokeRect(artX, artY, artW, artH);
 
     const ultY = 582;
-    ctx.fillStyle = card.awakened ? '#3b0a20' : '#ffffff';
+    ctx.fillStyle = isDark ? 'rgba(0,0,0,0.35)' : '#ffffff';
     ctx.fillRect(42, ultY, W - 84, 88);
-    ctx.strokeStyle = card.awakened ? '#ff5fa8' : theme.ink;
+    ctx.strokeStyle = borderCol;
     ctx.lineWidth = 4;
     ctx.strokeRect(42, ultY, W - 84, 88);
 
-    ctx.fillStyle = card.awakened ? '#ffb3cb' : theme.pri;
+    ctx.fillStyle = isDark ? (frame.accent || '#ffb3cb') : theme.pri;
     ctx.font = '800 16px "Space Grotesk", sans-serif';
     ctx.fillText(card.awakened ? '⚡ AWAKENED ULTIMATE ART' : '⚡ ULTIMATE TECHNIQUE', 60, ultY + 30);
-    ctx.fillStyle = card.awakened ? '#ffffff' : theme.ink;
+    ctx.fillStyle = isDark ? '#ffffff' : theme.ink;
     ctx.font = 'italic 800 28px "Space Grotesk", sans-serif';
     ctx.fillText(`「${(card.ultimate || 'Sakuga Burst').slice(0, 24)}」`, 56, ultY + 68);
 
@@ -292,7 +305,7 @@ export function initCardForge(root) {
     ];
     let sy = 702;
     stats.forEach(([label, val, col]) => {
-      ctx.fillStyle = card.awakened ? '#ffffff' : theme.ink;
+      ctx.fillStyle = isDark ? '#ffffff' : theme.ink;
       ctx.font = '800 22px "Space Grotesk", sans-serif';
       ctx.fillText(label, 48, sy + 24);
       ctx.textAlign = 'right';
@@ -300,20 +313,20 @@ export function initCardForge(root) {
       ctx.textAlign = 'left';
 
       const bx = 122, bw = W - 228, bh = 24;
-      ctx.fillStyle = card.awakened ? '#5c1434' : '#e6e4f8';
+      ctx.fillStyle = isDark ? 'rgba(255,255,255,0.16)' : '#e6e4f8';
       ctx.fillRect(bx, sy + 4, bw, bh);
       ctx.fillStyle = col;
       ctx.fillRect(bx, sy + 4, (bw * val) / 100, bh);
-      ctx.strokeStyle = card.awakened ? '#ffb3cb' : theme.ink;
+      ctx.strokeStyle = isDark ? '#ffffff' : theme.ink;
       ctx.lineWidth = 3;
       ctx.strokeRect(bx, sy + 4, bw, bh);
       sy += 56;
     });
 
     const pwr = calcPowerLevel();
-    ctx.fillStyle = card.awakened ? '#ffe066' : theme.ink;
+    ctx.fillStyle = isDark ? '#ffe066' : theme.ink;
     ctx.fillRect(42, H - 122, W - 84, 76);
-    ctx.fillStyle = card.awakened ? '#240715' : '#ffffff';
+    ctx.fillStyle = isDark ? '#1a0b15' : '#ffffff';
     ctx.font = '800 20px "Space Grotesk", sans-serif';
     ctx.fillText('SAKUGAVERSE EDITION', 62, H - 77);
     ctx.textAlign = 'right';
@@ -343,9 +356,60 @@ export function initCardForge(root) {
     });
   }
 
+  function renderCharChips() {
+    const host = root.querySelector('#cf-char-results');
+    if (!host) return;
+    host.innerHTML = charResults
+      .map(
+        (c, i) => `
+      <button type="button" class="char-chip" data-char-idx="${i}">
+        ${c.image ? `<img src="${c.image}" alt="" loading="lazy">` : ''}
+        <span>${escapeHtml(c.name)}</span>
+      </button>`
+      )
+      .join('');
+
+    host.querySelectorAll('[data-char-idx]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const ch = charResults[Number(btn.dataset.charIdx)];
+        if (!ch) return;
+        card.name = ch.name;
+        card.title = ch.title || 'Anime Legend';
+        if (ch.ultimate) card.ultimate = ch.ultimate;
+        if (ch.element) card.element = ch.element;
+        const nameIn = root.querySelector('#cf-name');
+        const titleIn = root.querySelector('#cf-title');
+        const ultIn = root.querySelector('#cf-ult');
+        if (nameIn) nameIn.value = card.name;
+        if (titleIn) titleIn.value = card.title;
+        if (ultIn) ultIn.value = card.ultimate;
+
+        if (ch.image) {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            card.customImg = img;
+            drawCard();
+          };
+          img.onerror = () => {
+            // If remote host blocks CORS for canvas, still show procedural art + updated name
+            card.customImg = null;
+            drawCard();
+          };
+          img.src = ch.image;
+        }
+        playTone('chime');
+        notify(t('cfCharImported', ch.name));
+        drawCard();
+      });
+    });
+  }
+
   function render() {
     const els = t('cfElements');
     const st = t('cfStats');
+    const frames = t('cfFrames');
+
     root.innerHTML = `
       <div class="panel-head">
         <div>
@@ -376,6 +440,25 @@ export function initCardForge(root) {
         </div>
 
         <div class="manga-card stack">
+          <!-- Jikan Character Search -->
+          <div class="field-group" style="padding:12px;background:var(--surface-alt);border:2px solid var(--ink);border-radius:14px">
+            <span class="field-title">🔍 ${t('cfSearchCharBtn')} (MyAnimeList)</span>
+            <div class="row-wrap" style="gap:10px">
+              <sakuga-input id="cf-char-search" type="search" label="${t('cfSearchCharBtn')}" placeholder="${escapeAttr(t('cfSearchCharPlaceholder'))}" style="--sk-input-width:240px"></sakuga-input>
+              <sakuga-button id="cf-char-btn" variant="secondary">${t('cfSearchCharBtn')}</sakuga-button>
+            </div>
+            <div class="char-results-row" id="cf-char-results"></div>
+          </div>
+
+          <div class="field-group">
+            <span class="field-title">${t('cfFrameLabel')}</span>
+            <div class="filter-pills" id="cf-frames">
+              ${Object.entries(frames)
+                .map(([key, label]) => `<button type="button" class="filter-pill ${card.frame === key ? 'active' : ''}" data-frame="${key}">${label}</button>`)
+                .join('')}
+            </div>
+          </div>
+
           <div class="grid-2">
             <div class="field-group">
               <span class="field-title">${t('cfCharName')}</span>
@@ -455,6 +538,8 @@ export function initCardForge(root) {
     const elRadio = root.querySelector('#cf-element');
     const rarityEl = root.querySelector('#cf-rarity');
     const awakenEl = root.querySelector('#cf-awaken');
+    const charSearchIn = root.querySelector('#cf-char-search');
+    const charSearchBtn = root.querySelector('#cf-char-btn');
 
     requestAnimationFrame(() => {
       nameIn.value = card.name;
@@ -463,8 +548,30 @@ export function initCardForge(root) {
       rarityEl.value = card.rarity;
       awakenEl.checked = card.awakened;
       drawCard();
-      updatePowerMeter();
+      updatePowerMeter(true);
       wireHoloTilt();
+    });
+
+    const doCharSearch = async () => {
+      charResults = await searchCharacters(charSearchIn.value || '');
+      renderCharChips();
+    };
+    charSearchBtn.addEventListener('click', doCharSearch);
+    charSearchIn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        doCharSearch();
+      }
+    });
+    renderCharChips();
+
+    root.querySelectorAll('[data-frame]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        card.frame = btn.dataset.frame;
+        root.querySelectorAll('[data-frame]').forEach((b) => b.classList.toggle('active', b === btn));
+        playTone('chime');
+        drawCard();
+      });
     });
 
     nameIn.addEventListener('input', () => { card.name = nameIn.value; drawCard(); });
@@ -506,12 +613,14 @@ export function initCardForge(root) {
 
     root.querySelector('#cf-random').addEventListener('click', () => {
       const p = PRESETS[Math.floor(Math.random() * PRESETS.length)];
+      const frameKeys = Object.keys(FRAMES);
       card = {
         ...card,
         name: p.name,
         title: p.title,
         ultimate: p.ult,
         element: p.el,
+        frame: frameKeys[Math.floor(Math.random() * frameKeys.length)],
         preset: p.id,
         power: 55 + Math.floor(Math.random() * 46),
         speed: 55 + Math.floor(Math.random() * 46),
@@ -529,16 +638,23 @@ export function initCardForge(root) {
     const dlBtn = root.querySelector('#cf-download');
     dlBtn.addEventListener('click', () => {
       const canvas = root.querySelector('#forge-canvas');
-      const link = document.createElement('a');
-      const slug = (card.name || 'sakuga-card').toLowerCase().replace(/[^a-z0-9]+/g, '-');
-      link.download = `${slug}-sakugaverse.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-      state.cardsForged += 1;
-      playTone('fanfare');
-      fxCelebrate(canvas);
-      dlBtn.done();
-      addExp(25, t('cfDownloaded'));
+      try {
+        const link = document.createElement('a');
+        const slug = (card.name || 'sakuga-card').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        link.download = `${slug}-sakugaverse.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        state.cardsForged += 1;
+        playTone('fanfare');
+        fxCelebrate(canvas);
+        dlBtn.done();
+        addExp(25, t('cfDownloaded'));
+      } catch {
+        // If remote image tainted canvas, fallback to procedural art for clean export
+        card.customImg = null;
+        drawCard();
+        notify('Exported with vector art (remote image blocked CORS).');
+      }
     });
 
     const copyBtn = root.querySelector('#cf-copy');
@@ -548,23 +664,35 @@ export function initCardForge(root) {
         notify(t('cfCopyFail'));
         return;
       }
-      canvas.toBlob(async (blob) => {
-        if (!blob) return notify(t('cfCopyFail'));
-        try {
-          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-          state.cardsForged += 1;
-          playTone('fanfare');
-          fxCelebrate(canvas);
-          copyBtn.done();
-          addExp(15, t('cfCopied'));
-        } catch {
-          notify(t('cfCopyFail'));
-        }
-      }, 'image/png');
+      try {
+        canvas.toBlob(async (blob) => {
+          if (!blob) return notify(t('cfCopyFail'));
+          try {
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+            state.cardsForged += 1;
+            playTone('fanfare');
+            fxCelebrate(canvas);
+            copyBtn.done();
+            addExp(15, t('cfCopied'));
+          } catch {
+            notify(t('cfCopyFail'));
+          }
+        }, 'image/png');
+      } catch {
+        notify(t('cfCopyFail'));
+      }
     });
   }
 
   render();
   onLangChange(render);
   root.addEventListener('panel:show', () => updatePowerMeter(true));
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+function escapeAttr(s) {
+  return escapeHtml(s).replace(/\n/g, ' ');
 }

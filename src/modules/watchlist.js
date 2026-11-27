@@ -1,6 +1,6 @@
 import { t, onLangChange } from '../core/i18n.js';
 import { state, saveState, subscribe, addExp, addToWatchlist, notify } from '../core/store.js';
-import { searchAnime } from '../core/jikan.js';
+import { searchAnime, ALL_GENRES } from '../core/jikan.js';
 import { playTone } from '../core/sfx.js';
 import { fxCelebrate } from '../core/fx.js';
 
@@ -9,14 +9,29 @@ const FALLBACK_SVG =
 
 export function initWatchlist(root, { openModal } = {}) {
   let activeFilter = 'all';
+  let sortMode = 'default';
   let spoilerFree = false;
+
+  // Search Pro state
+  let searchMode = 'search'; // 'search' | 'airing' | 'top' | 'upcoming'
+  let searchQuery = '';
+  let searchType = 'all';
+  let searchGenre = 'all';
+  let searchSort = 'relevance';
+  let searchPage = 1;
+  let hasNextPage = false;
   let searchResults = [];
   let searchStatus = '';
-  let searchQuery = '';
   let lastListSig = '';
 
   function getListSig() {
     return state.watchlist.map((a) => `${a.mal_id}:${a.title}`).join('|');
+  }
+
+  function isInWatchlist(anime) {
+    return state.watchlist.some(
+      (a) => (anime.mal_id && a.mal_id === anime.mal_id) || a.title.toLowerCase() === (anime.title || '').toLowerCase()
+    );
   }
 
   function getStatus(item) {
@@ -32,6 +47,7 @@ export function initWatchlist(root, { openModal } = {}) {
   }
 
   function updateOverallBar(instant = false) {
+    if (root.hidden) return;
     const bar = root.querySelector('#wl-overall-progress');
     if (bar && typeof bar.set === 'function') {
       bar.set(calcOverallProgress(), instant);
@@ -39,23 +55,29 @@ export function initWatchlist(root, { openModal } = {}) {
   }
 
   function updateFilterCounts() {
-    const counts = { all: state.watchlist.length, watching: 0, completed: 0, plan: 0 };
-    state.watchlist.forEach((a) => counts[getStatus(a)]++);
+    const counts = { all: state.watchlist.length, watching: 0, completed: 0, plan: 0, fav: 0 };
+    state.watchlist.forEach((a) => {
+      counts[getStatus(a)]++;
+      if (a.favorite) counts.fav++;
+    });
     const map = {
       all: `${t('wlFilterAll')} (${counts.all})`,
       watching: `${t('wlFilterWatching')} (${counts.watching})`,
       completed: `${t('wlFilterCompleted')} (${counts.completed})`,
-      plan: `${t('wlFilterPlan')} (${counts.plan})`
+      plan: `${t('wlFilterPlan')} (${counts.plan})`,
+      fav: `${t('wlFilterFav')} (${counts.fav})`
     };
     root.querySelectorAll('[data-filter]').forEach((btn) => {
       if (map[btn.dataset.filter]) btn.textContent = map[btn.dataset.filter];
     });
   }
 
-  function openAnimeDetail(anime) {
+  function openAnimeDetail(anime, isSaved = true) {
     if (typeof openModal !== 'function') return;
     const maxEp = Math.max(1, anime.episodes || 12);
     const malUrl = anime.mal_id && anime.mal_id < 9999999 ? `https://myanimelist.net/anime/${anime.mal_id}` : '';
+    const alreadyAdded = isInWatchlist(anime);
+
     openModal(
       `
       <div class="row-wrap" style="justify-content:space-between;margin-bottom:14px">
@@ -70,20 +92,34 @@ export function initWatchlist(root, { openModal } = {}) {
           <h3 style="margin:0 0 8px;font-size:21px;font-weight:800;line-height:1.2">${escapeHtml(anime.title)}</h3>
           <div class="row-wrap" style="gap:6px;margin-bottom:10px">
             <span class="tag-chip pri">${anime.type || 'TV'} · ${maxEp} EPS</span>
-            ${(anime.genres || []).slice(0, 3).map((g) => `<span class="tag-chip">${escapeHtml(g)}</span>`).join('')}
+            ${(anime.genres || []).slice(0, 4).map((g) => `<span class="tag-chip">${escapeHtml(g)}</span>`).join('')}
           </div>
           <p style="margin:0;font-size:13.5px;color:var(--mute);line-height:1.55">${escapeHtml(anime.synopsis || '')}</p>
         </div>
       </div>
 
-      <div class="manga-card soft" style="padding:14px;box-shadow:var(--shadow-sm)">
-        <div class="field-group">
-          <span class="field-title">${t('wlQuickEp')} (${anime.watched} / ${maxEp})</span>
-          <div class="slider-slot">
-            <sakuga-slider id="detail-ep-slider" min="0" max="${maxEp}" step="1" value="${anime.watched}" unit=" ep" label="${t('wlQuickEp')}" style="--sk-slider-width:100%"></sakuga-slider>
+      ${
+        isSaved
+          ? `
+        <div class="manga-card soft stack" style="padding:14px;box-shadow:var(--shadow-sm)">
+          <div class="field-group">
+            <span class="field-title">${t('wlQuickEp')} (${anime.watched} / ${maxEp})</span>
+            <div class="slider-slot">
+              <sakuga-slider id="detail-ep-slider" min="0" max="${maxEp}" step="1" value="${anime.watched}" unit=" ep" label="${t('wlQuickEp')}" style="--sk-slider-width:100%"></sakuga-slider>
+            </div>
           </div>
-        </div>
-      </div>
+          <div class="field-group">
+            <span class="field-title">${t('wlNotesLabel')}</span>
+            <textarea id="detail-notes" class="manga-textarea" placeholder="${escapeAttr(t('wlNotesPlaceholder'))}">${escapeHtml(anime.notes || '')}</textarea>
+          </div>
+        </div>`
+          : `
+        <div style="text-align:center;margin:14px 0">
+          <button type="button" class="mini-btn" id="detail-add-now" style="padding:10px 18px;font-size:14px">
+            ${alreadyAdded ? t('wlInList') : t('wlAddBtn')}
+          </button>
+        </div>`
+      }
 
       ${malUrl ? `<div style="margin-top:16px;text-align:right"><a class="mini-btn" href="${malUrl}" target="_blank" rel="noopener">${t('wlOpenMal')}</a></div>` : ''}
       `,
@@ -104,6 +140,21 @@ export function initWatchlist(root, { openModal } = {}) {
           renderList();
           updateOverallBar();
         });
+        const notesEl = dialog.querySelector('#detail-notes');
+        notesEl?.addEventListener('change', () => {
+          anime.notes = notesEl.value.trim();
+          saveState();
+          notify(t('wlNotesSaved'));
+        });
+        dialog.querySelector('#detail-add-now')?.addEventListener('click', (e) => {
+          if (addToWatchlist(anime)) {
+            playTone('chime');
+            e.currentTarget.textContent = t('wlInList');
+            renderSearchResults();
+            renderList();
+            updateOverallBar();
+          }
+        });
       }
     );
   }
@@ -111,26 +162,35 @@ export function initWatchlist(root, { openModal } = {}) {
   function renderSearchResults() {
     const box = root.querySelector('#wl-search-results');
     const msg = root.querySelector('#wl-search-status');
+    const moreWrap = root.querySelector('#wl-load-more-wrap');
     if (!box || !msg) return;
     msg.textContent = searchStatus;
     if (!searchResults.length) {
       box.innerHTML = '';
+      if (moreWrap) moreWrap.innerHTML = '';
       return;
     }
+
     box.innerHTML = searchResults
-      .map(
-        (a, idx) => `
+      .map((a, idx) => {
+        const added = isInWatchlist(a);
+        return `
       <div class="search-item">
-        <div class="anime-thumb">
+        <div class="anime-thumb" data-preview-idx="${idx}" style="cursor:pointer" title="${t('wlDetailBtn')}">
           <img src="${a.image || FALLBACK_SVG}" alt="" loading="lazy" onerror="this.src='${FALLBACK_SVG}'">
         </div>
         <div class="search-meta">
-          <h4>${escapeHtml(a.title)}</h4>
-          <p>★ ${a.score || 'N/A'} · ${a.episodes || '?'} eps · ${a.year || ''}</p>
-          <button type="button" class="mini-btn" data-add-idx="${idx}">${t('wlAddBtn')}</button>
+          <h4 data-preview-idx="${idx}" style="cursor:pointer">${escapeHtml(a.title)}</h4>
+          <p>★ ${a.score || 'N/A'} · ${a.type || 'TV'} · ${a.episodes || '?'} eps · ${a.year || ''}</p>
+          <div class="row-wrap" style="gap:6px">
+            <button type="button" class="mini-btn" data-add-idx="${idx}" ${added ? 'disabled style="opacity:0.65"' : ''}>
+              ${added ? t('wlInList') : t('wlAddBtn')}
+            </button>
+            <button type="button" class="mini-btn" data-preview-idx="${idx}">${t('wlDetailBtn')}</button>
+          </div>
         </div>
-      </div>`
-      )
+      </div>`;
+      })
       .join('');
 
     box.querySelectorAll('[data-add-idx]').forEach((btn) => {
@@ -138,17 +198,72 @@ export function initWatchlist(root, { openModal } = {}) {
         const item = searchResults[Number(btn.dataset.addIdx)];
         if (item && addToWatchlist(item)) {
           playTone('chime');
+          renderSearchResults();
           renderList();
           updateOverallBar();
         }
       });
     });
+
+    box.querySelectorAll('[data-preview-idx]').forEach((el) => {
+      el.addEventListener('click', () => {
+        const item = searchResults[Number(el.dataset.previewIdx)];
+        if (item) {
+          playTone('chime');
+          openAnimeDetail(item, false);
+        }
+      });
+    });
+
+    if (moreWrap) {
+      moreWrap.innerHTML = hasNextPage
+        ? `<button type="button" class="filter-pill active" id="wl-load-more-btn">${t('wlLoadMore')}</button>`
+        : '';
+      moreWrap.querySelector('#wl-load-more-btn')?.addEventListener('click', () => runSearch(true));
+    }
+  }
+
+  async function runSearch(append = false) {
+    const inputEl = root.querySelector('#wl-search-input');
+    const searchBtn = root.querySelector('#wl-search-btn');
+    if (inputEl) searchQuery = inputEl.value || '';
+    if (!append) {
+      searchPage = 1;
+      searchResults = [];
+    } else {
+      searchPage += 1;
+    }
+    searchStatus = t('wlSearching');
+    renderSearchResults();
+
+    const { items, hasNextPage: more, fromFallback } = await searchAnime({
+      query: searchQuery,
+      type: searchType,
+      genre: searchGenre,
+      orderBy: searchSort,
+      page: searchPage,
+      mode: searchMode
+    });
+
+    if (append) {
+      const seen = new Set(searchResults.map((a) => a.mal_id));
+      searchResults = [...searchResults, ...items.filter((a) => !seen.has(a.mal_id))];
+    } else {
+      searchResults = items;
+    }
+    hasNextPage = more;
+    searchStatus = !searchResults.length ? t('wlNoResult') : fromFallback ? t('wlApiFallback') : '';
+    if (!append && searchBtn && typeof searchBtn.done === 'function') searchBtn.done();
+    renderSearchResults();
   }
 
   function renderList() {
     lastListSig = getListSig();
-    const counts = { all: state.watchlist.length, watching: 0, completed: 0, plan: 0 };
-    state.watchlist.forEach((a) => counts[getStatus(a)]++);
+    const counts = { all: state.watchlist.length, watching: 0, completed: 0, plan: 0, fav: 0 };
+    state.watchlist.forEach((a) => {
+      counts[getStatus(a)]++;
+      if (a.favorite) counts.fav++;
+    });
 
     const pills = root.querySelector('#wl-filters');
     if (pills) {
@@ -156,7 +271,8 @@ export function initWatchlist(root, { openModal } = {}) {
         ['all', `${t('wlFilterAll')} (${counts.all})`],
         ['watching', `${t('wlFilterWatching')} (${counts.watching})`],
         ['completed', `${t('wlFilterCompleted')} (${counts.completed})`],
-        ['plan', `${t('wlFilterPlan')} (${counts.plan})`]
+        ['plan', `${t('wlFilterPlan')} (${counts.plan})`],
+        ['fav', `${t('wlFilterFav')} (${counts.fav})`]
       ]
         .map(
           ([key, label]) =>
@@ -174,7 +290,19 @@ export function initWatchlist(root, { openModal } = {}) {
 
     const listEl = root.querySelector('#wl-grid');
     if (!listEl) return;
-    const filtered = state.watchlist.filter((a) => activeFilter === 'all' || getStatus(a) === activeFilter);
+    let filtered = state.watchlist.filter((a) => {
+      if (activeFilter === 'all') return true;
+      if (activeFilter === 'fav') return Boolean(a.favorite);
+      return getStatus(a) === activeFilter;
+    });
+
+    if (sortMode === 'mal') filtered = [...filtered].sort((a, b) => (b.score || 0) - (a.score || 0));
+    else if (sortMode === 'myrate') filtered = [...filtered].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    else if (sortMode === 'prog') {
+      filtered = [...filtered].sort(
+        (a, b) => b.watched / Math.max(1, b.episodes) - a.watched / Math.max(1, a.episodes)
+      );
+    } else if (sortMode === 'az') filtered = [...filtered].sort((a, b) => (a.title || '').localeCompare(b.title || ''));
 
     if (!filtered.length) {
       listEl.innerHTML = `<div class="empty-box">${t('wlEmpty')}</div>`;
@@ -202,6 +330,7 @@ export function initWatchlist(root, { openModal } = {}) {
                 ${status === 'completed' ? t('wlFilterCompleted') : status === 'watching' ? t('wlFilterWatching') : t('wlFilterPlan')}
               </span>
               <span class="tag-chip gold">MAL ${anime.score || '—'}</span>
+              ${anime.notes ? `<span class="tag-chip">📝</span>` : ''}
             </div>
             <p class="wl-synopsis ${spoilerFree ? 'blurred' : ''}">${escapeHtml(anime.synopsis || '')}</p>
           </div>
@@ -226,7 +355,7 @@ export function initWatchlist(root, { openModal } = {}) {
       card.querySelectorAll('[data-open-detail]').forEach((el) => {
         el.addEventListener('click', () => {
           playTone('chime');
-          openAnimeDetail(anime);
+          openAnimeDetail(anime, true);
         });
       });
 
@@ -247,6 +376,7 @@ export function initWatchlist(root, { openModal } = {}) {
       favEl.addEventListener('change', () => {
         anime.favorite = Boolean(favEl.checked);
         saveState();
+        updateFilterCounts();
       });
 
       card.querySelectorAll('[data-ep-delta]').forEach((btn) => {
@@ -265,7 +395,7 @@ export function initWatchlist(root, { openModal } = {}) {
               saveState();
             }
             const nextStatus = getStatus(anime);
-            if (activeFilter !== 'all' && nextStatus !== prevStatus) {
+            if (activeFilter !== 'all' && activeFilter !== 'fav' && nextStatus !== prevStatus) {
               renderList();
             } else {
               const newPct = Math.min(100, Math.round((anime.watched / Math.max(1, anime.episodes || 12)) * 100));
@@ -292,6 +422,7 @@ export function initWatchlist(root, { openModal } = {}) {
           saveState();
           notify(t('wlRemoved'));
           renderList();
+          renderSearchResults();
           updateOverallBar();
         }
       });
@@ -317,13 +448,39 @@ export function initWatchlist(root, { openModal } = {}) {
 
       <div class="grid-split" style="margin-bottom:22px">
         <div class="manga-card">
-          <h3 class="card-label">🔍 ${t('wlSearchBtn')}</h3>
+          <div class="filter-pills" id="wl-search-modes" style="margin-bottom:14px">
+            <button type="button" class="filter-pill ${searchMode === 'search' ? 'active' : ''}" data-smode="search">${t('wlTabSearch')}</button>
+            <button type="button" class="filter-pill ${searchMode === 'airing' ? 'active' : ''}" data-smode="airing">${t('wlTabAiring')}</button>
+            <button type="button" class="filter-pill ${searchMode === 'top' ? 'active' : ''}" data-smode="top">${t('wlTabTop')}</button>
+            <button type="button" class="filter-pill ${searchMode === 'upcoming' ? 'active' : ''}" data-smode="upcoming">${t('wlTabUpcoming')}</button>
+          </div>
+
           <div class="search-bar-row">
             <sakuga-input id="wl-search-input" type="search" label="${escapeAttr(t('wlSearchBtn'))}" placeholder="${escapeAttr(t('wlSearchPlaceholder'))}"></sakuga-input>
             <sakuga-button id="wl-search-btn">${t('wlSearchBtn')}</sakuga-button>
           </div>
+
+          <div class="row-wrap" style="margin-top:12px;gap:8px">
+            <select id="wl-stype" class="manga-select" aria-label="Anime type">
+              <option value="all" ${searchType === 'all' ? 'selected' : ''}>${t('wlFilterTypeAll')}</option>
+              <option value="tv" ${searchType === 'tv' ? 'selected' : ''}>TV</option>
+              <option value="movie" ${searchType === 'movie' ? 'selected' : ''}>Movie</option>
+              <option value="ova" ${searchType === 'ova' ? 'selected' : ''}>OVA</option>
+            </select>
+            <select id="wl-sgenre" class="manga-select" aria-label="Anime genre">
+              <option value="all" ${searchGenre === 'all' ? 'selected' : ''}>${t('wlFilterGenreAll')}</option>
+              ${ALL_GENRES.map((g) => `<option value="${g}" ${searchGenre === g ? 'selected' : ''}>${g}</option>`).join('')}
+            </select>
+            <select id="wl-ssort" class="manga-select" aria-label="Search sort">
+              <option value="relevance" ${searchSort === 'relevance' ? 'selected' : ''}>${t('wlSortRel')}</option>
+              <option value="score" ${searchSort === 'score' ? 'selected' : ''}>${t('wlSortScore')}</option>
+              <option value="popularity" ${searchSort === 'popularity' ? 'selected' : ''}>${t('wlSortPop')}</option>
+            </select>
+          </div>
+
           <p id="wl-search-status" style="margin:10px 0 0;font-size:13px;color:var(--mute)"></p>
           <div id="wl-search-results" class="search-results"></div>
+          <div id="wl-load-more-wrap" style="margin-top:14px;text-align:center"></div>
         </div>
 
         <div class="manga-card soft">
@@ -337,6 +494,16 @@ export function initWatchlist(root, { openModal } = {}) {
       <div class="manga-card">
         <div class="row-wrap" style="justify-content:space-between;margin-bottom:6px">
           <div id="wl-filters" class="filter-pills"></div>
+          <div class="row-wrap" style="gap:8px">
+            <span style="font-size:12.5px;font-weight:800;color:var(--mute)">${t('wlSortLabel')}</span>
+            <select id="wl-list-sort" class="manga-select" aria-label="Sort watchlist">
+              <option value="default" ${sortMode === 'default' ? 'selected' : ''}>${t('wlSortDefault')}</option>
+              <option value="mal" ${sortMode === 'mal' ? 'selected' : ''}>${t('wlSortMal')}</option>
+              <option value="myrate" ${sortMode === 'myrate' ? 'selected' : ''}>${t('wlSortMyRate')}</option>
+              <option value="prog" ${sortMode === 'prog' ? 'selected' : ''}>${t('wlSortProg')}</option>
+              <option value="az" ${sortMode === 'az' ? 'selected' : ''}>${t('wlSortAZ')}</option>
+            </select>
+          </div>
         </div>
         <div id="wl-grid" class="watchlist-grid"></div>
       </div>
@@ -352,22 +519,46 @@ export function initWatchlist(root, { openModal } = {}) {
       updateOverallBar(true);
     });
 
-    async function doSearch() {
-      searchQuery = inputEl.value || '';
-      searchStatus = t('wlSearching');
-      renderSearchResults();
-      const { items, fromFallback } = await searchAnime(searchQuery);
-      searchResults = items;
-      searchStatus = !items.length ? t('wlNoResult') : fromFallback ? t('wlApiFallback') : '';
-      searchBtn.done();
-      renderSearchResults();
-    }
+    root.querySelectorAll('[data-smode]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        searchMode = btn.dataset.smode;
+        root.querySelectorAll('[data-smode]').forEach((b) => b.classList.toggle('active', b === btn));
+        playTone('chime');
+        if (searchMode !== 'search' || searchQuery) runSearch(false);
+      });
+    });
 
-    searchBtn.addEventListener('click', doSearch);
+    root.querySelector('#wl-stype').addEventListener('change', (e) => {
+      searchType = e.target.value;
+      searchMode = 'search';
+      runSearch(false);
+    });
+    root.querySelector('#wl-sgenre').addEventListener('change', (e) => {
+      searchGenre = e.target.value;
+      searchMode = 'search';
+      runSearch(false);
+    });
+    root.querySelector('#wl-ssort').addEventListener('change', (e) => {
+      searchSort = e.target.value;
+      searchMode = 'search';
+      runSearch(false);
+    });
+
+    root.querySelector('#wl-list-sort').addEventListener('change', (e) => {
+      sortMode = e.target.value;
+      renderList();
+    });
+
+    searchBtn.addEventListener('click', () => {
+      searchMode = 'search';
+      root.querySelectorAll('[data-smode]').forEach((b) => b.classList.toggle('active', b.dataset.smode === 'search'));
+      runSearch(false);
+    });
     inputEl.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        doSearch();
+        searchMode = 'search';
+        runSearch(false);
       }
     });
 
@@ -386,6 +577,7 @@ export function initWatchlist(root, { openModal } = {}) {
     const sig = getListSig();
     if (sig !== lastListSig) {
       renderList();
+      renderSearchResults();
       updateOverallBar();
     }
   });

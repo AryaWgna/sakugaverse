@@ -1,6 +1,6 @@
 import { t, onLangChange } from '../core/i18n.js';
 import { state, saveState, addExp } from '../core/store.js';
-import { playTone, setSfxEnabled, toggleAmbient, isAmbientPlaying } from '../core/sfx.js';
+import { playTone, setSfxEnabled, toggleAmbient, isAmbientPlaying, getAmbientMode, setAmbientMode, setAmbientVolume } from '../core/sfx.js';
 import { fxSSR, fxCombo } from '../core/fx.js';
 
 export function initTraining(root) {
@@ -11,6 +11,7 @@ export function initTraining(root) {
   let remainingSec = focusMin * 60;
   let running = false;
   let sfxOn = true;
+  let ambVol = 45;
   let tickId = null;
 
   if (!state.quests) {
@@ -33,10 +34,12 @@ export function initTraining(root) {
     const phaseEl = root.querySelector('#tr-phase');
     const bar = root.querySelector('#tr-progress');
     const ring = root.querySelector('#tr-aura-ring');
+    const todayChip = root.querySelector('#tr-today-chip');
     const pct = Math.max(0, Math.min(1, 1 - remainingSec / Math.max(1, totalSec())));
     if (clock) clock.textContent = formatTime(remainingSec);
     if (phaseEl) phaseEl.textContent = phase === 'focus' ? t('trPhaseFocus') : t('trPhaseBreak');
     if (ring) ring.style.setProperty('--ring-pct', String(Math.round(pct * 100)));
+    if (todayChip) todayChip.textContent = `⏱️ ${t('trTodayMin', state.focusMinutesToday || 0)}`;
     if (bar && typeof bar.set === 'function' && !root.hidden) {
       bar.set(pct, instant);
     }
@@ -48,12 +51,13 @@ export function initTraining(root) {
     const bar = root.querySelector('#tr-progress');
     const ring = root.querySelector('#tr-aura-ring');
     if (ring) ring.style.setProperty('--ring-pct', '100');
-    if (bar) bar.set(1);
+    if (bar && !root.hidden) bar.set(1);
     playTone('fanfare');
     fxSSR(ring || bar);
 
     if (phase === 'focus') {
       state.sessionsDone += 1;
+      state.focusMinutesToday = (state.focusMinutesToday || 0) + focusMin;
       addExp(50, t('trSessionComplete'));
       phase = 'break';
     } else {
@@ -146,6 +150,9 @@ export function initTraining(root) {
 
   function render() {
     const arcs = t('trArcs');
+    const ambModes = t('trAmbientModes');
+    const curAmb = getAmbientMode();
+
     root.innerHTML = `
       <div class="panel-head">
         <div>
@@ -154,10 +161,7 @@ export function initTraining(root) {
           <p class="panel-desc">${t('trDesc')}</p>
         </div>
         <div class="row-wrap">
-          <div class="row-wrap" style="gap:8px">
-            <span class="field-title" style="margin:0">🌧️ ${t('trAmbientToggle')}</span>
-            <sakuga-toggle id="tr-ambient" label="${t('trAmbientToggle')}"></sakuga-toggle>
-          </div>
+          <span class="tag-chip gold" id="tr-today-chip">⏱️ ${t('trTodayMin', state.focusMinutesToday || 0)}</span>
           <div class="row-wrap" style="gap:8px">
             <span class="field-title" style="margin:0">🔊 ${t('trSfxToggle')}</span>
             <sakuga-toggle id="tr-sfx" label="${t('trSfxToggle')}"></sakuga-toggle>
@@ -191,7 +195,23 @@ export function initTraining(root) {
           </div>
 
           <div class="manga-card soft stack">
+            <div class="row-wrap" style="justify-content:space-between">
+              <span class="field-title" style="margin:0">🎧 ${t('trAmbientToggle')}</span>
+              <sakuga-toggle id="tr-ambient" label="${t('trAmbientToggle')}"></sakuga-toggle>
+            </div>
+            <div class="filter-pills" id="tr-amb-modes">
+              <button type="button" class="filter-pill ${curAmb === 'rain' ? 'active' : ''}" data-amb="rain">${ambModes.rain}</button>
+              <button type="button" class="filter-pill ${curAmb === 'campfire' ? 'active' : ''}" data-amb="campfire">${ambModes.campfire}</button>
+              <button type="button" class="filter-pill ${curAmb === 'space' ? 'active' : ''}" data-amb="space">${ambModes.space}</button>
+            </div>
             <div class="field-group">
+              <span class="field-title">${t('trAmbientVol')}</span>
+              <div class="slider-slot">
+                <sakuga-slider id="tr-amb-vol" min="10" max="100" step="5" value="${ambVol}" unit="%" label="${t('trAmbientVol')}" style="--sk-slider-width:100%"></sakuga-slider>
+              </div>
+            </div>
+
+            <div class="field-group" style="padding-top:10px;border-top:2px dashed var(--line)">
               <span class="field-title">${t('trSelectArc')}</span>
               <sakuga-radio id="tr-arc-radio" label="${t('trSelectArc')}">
                 <option value="chamber" ${arc === 'chamber' ? 'selected' : ''}>${arcs.chamber}</option>
@@ -249,6 +269,20 @@ export function initTraining(root) {
     });
     ambEl.addEventListener('change', () => {
       toggleAmbient(Boolean(ambEl.checked));
+    });
+
+    root.querySelectorAll('[data-amb]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        setAmbientMode(btn.dataset.amb);
+        root.querySelectorAll('[data-amb]').forEach((b) => b.classList.toggle('active', b === btn));
+        playTone('chime');
+      });
+    });
+
+    const volSlider = root.querySelector('#tr-amb-vol');
+    volSlider.addEventListener('input', () => {
+      ambVol = Number(volSlider.value) || 45;
+      setAmbientVolume((ambVol / 100) * 0.45);
     });
 
     root.querySelector('#tr-start-btn').addEventListener('click', toggleTimer);
